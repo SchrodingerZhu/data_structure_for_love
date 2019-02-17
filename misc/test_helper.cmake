@@ -1,0 +1,10 @@
+function(unit_test name)
+    add_executable(test_${name} misc/test/test_${name}.cpp)
+    add_test(test_${name}_run test_${name})
+endfunction()
+
+function(unit_test_with_lib name lib)
+    add_executable(test_${name} misc/test/test_${name}.cpp)
+    target_link_libraries(test_${name} ${lib})
+    add_test(test_${name}_run test_${name})
+endfunction()

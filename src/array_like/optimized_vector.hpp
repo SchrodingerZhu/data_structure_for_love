@@ -1,0 +1,234 @@
+/*
+ * Created by schrodinger on 2/16/19.
+ * Reference: small_vector implement by ICEYSELF.
+ * Reference link: https://dev.tencent.com/u/ICEYSELF/p/ckxc-v2/git/blob/master/include/sona/small_vector.hpp
+ * ----------------------------------------------------------------------------------------------------------
+ * data_structure::optimized_vector
+ * A vector implement with optimization for small amount data.
+ */
+
+#ifndef DATA_STRUCTURE_FOR_LOVE_OPTIMIZED_VECTOR_HPP
+#define DATA_STRUCTURE_FOR_LOVE_OPTIMIZED_VECTOR_HPP
+
+#include <cstddef>
+#include <cstring>
+#include <memory>
+#include <object_management.hpp>
+namespace data_structure {
+    template <typename T, std::size_t LocalSize = 13>
+    class optimized_vector {
+    public:
+        using size_type = std::size_t;
+        using difference_type = std::ptrdiff_t;
+        using value_type = T;
+        using reference = T &;
+        using pointer = T *;
+        using iterator = T*;
+        using const_iterator = T const *;
+
+        optimized_vector() noexcept {
+            static_assert(LocalSize, "LocalSize cannot be zero");
+            std::memset(reinterpret_cast<void *>(&mem_union), 0, sizeof(mem_union));
+            mem_state = MEM_STATE::uninitialized;
+        }
+
+        explicit optimized_vector(size_type count, value_type const& value = value_type())  {
+            static_assert(LocalSize, "LocalSize cannot be zero");
+            mem_state = MEM_STATE::uninitialized;
+            std::memset(reinterpret_cast<void *>(&mem_union), 0, sizeof(mem_union));
+            if (count == 0) return;
+            else {
+                assure_capacity(count);
+                mark_size(count);
+                for(size_type i = 0; i < count; ++i){
+                    utils::emplace_construct<T>(begin() + i, value);
+                }
+            }
+        }
+
+        optimized_vector(optimized_vector const &that) {
+            static_assert(LocalSize, "LocalSize cannot be zero");
+            mem_state = MEM_STATE::uninitialized;
+            std::memset(reinterpret_cast<void *>(&mem_union), 0, sizeof(mem_union));
+            if (that.mem_state == MEM_STATE::uninitialized) return;
+            else  {
+                assure_capacity(that.size());
+                mark_size(that.size());
+                std::uninitialized_copy(that.begin(), that.end(), begin());
+            }
+        }
+
+        optimized_vector(optimized_vector &&that) noexcept {
+            static_assert(LocalSize, "LocalSize cannot be zero");
+            mem_state = MEM_STATE::uninitialized;
+            std::memset(reinterpret_cast<void *>(&mem_union), 0, sizeof(mem_union));
+            if (that.mem_state == MEM_STATE::uninitialized) return;
+            else {
+                assure_capacity(that.size());
+                mark_size(that.size());
+                std::uninitialized_move(that.begin(), that.end(), begin());
+            }
+            that.mem_state = MEM_STATE::uninitialized;
+            std::memset(reinterpret_cast<void *>(&that.mem_union), 0, sizeof(that.mem_union));
+        }
+
+        optimized_vector(std::initializer_list<T> init_list) {
+            static_assert(LocalSize, "LocalSize cannot be zero");
+            assure_capacity(init_list.size());
+            mark_size(init_list.size());
+            std::uninitialized_copy(init_list.begin(), init_list.end(), begin());
+        }
+
+        ~optimized_vector() {
+            if (mem_state == MEM_STATE::uninitialized) return;
+            for (auto &value : *this) utils::destroy_at(&value);
+            if (mem_state == MEM_STATE::on_heap) {
+                auto a = static_cast<void* >(mem_union.heap_storage.mem_start);
+                ::operator delete(a, (mem_union.heap_storage.mem_start - mem_union.heap_storage.mem_end) * sizeof(T));
+            }
+        }
+
+        iterator begin() noexcept {
+            if(mem_state == MEM_STATE::locally) {
+                return reinterpret_cast<T *>(&(mem_union.local_storage.storage));
+            } else if(mem_state == MEM_STATE::on_heap) {
+                return mem_union.heap_storage.mem_start;
+            } else {
+                return nullptr;
+            }
+        }
+
+        iterator end() noexcept {
+            if(mem_state == MEM_STATE::locally) {
+                return reinterpret_cast<T *>(&(mem_union.local_storage.storage)) + mem_union.local_storage.usage;
+            } else if(mem_state == MEM_STATE::on_heap) {
+                return mem_union.heap_storage.mem_usage;
+            } else {
+                return nullptr;
+            }
+        }
+
+        inline const_iterator begin() const noexcept {return cbegin(); }
+        inline const_iterator end() const noexcept {return cend(); }
+
+        const_iterator cbegin() const {
+            if(mem_state == MEM_STATE::locally) {
+                return reinterpret_cast<T const*>(&(mem_union.local_storage.storage));
+            } else if(mem_state == MEM_STATE::on_heap) {
+                return mem_union.heap_storage.mem_start;
+            } else {
+                return nullptr;
+            }
+        }
+
+        const_iterator cend() const {
+            if(mem_state == MEM_STATE::locally) {
+                return reinterpret_cast<T const *>(&(mem_union.local_storage.storage)) + mem_union.local_storage.usage;
+            } else if(mem_state == MEM_STATE::on_heap) {
+                return mem_union.heap_storage.mem_usage;
+            } else {
+                return nullptr;
+            }
+        }
+
+        value_type &operator[](size_type n) { return *(begin() + n);}
+        value_type const &operator[](size_type n) const {return *(cbegin() + n);}
+        size_type size() const noexcept {return cend() - cbegin(); }
+        size_type capacity() const noexcept {
+            if(mem_state == MEM_STATE::uninitialized) {
+                return 0;
+            } else if(mem_state == MEM_STATE::locally){
+                return LocalSize;
+            } else {
+                return mem_union.heap_storage.mem_end - mem_union.heap_storage.mem_start;
+            }
+        }
+
+        void push_back(value_type const& value) {
+            assure_capacity(size() + 1);
+            if(mem_state == MEM_STATE::locally) {
+                utils::emplace_construct<T>(
+                        reinterpret_cast<T *>(&(mem_union.local_storage.storage)) + (mem_union.local_storage.usage++), value);
+            } else {
+                utils::emplace_construct<T>(mem_union.heap_storage.mem_usage++, value);
+            }
+        }
+        void pop_back() {
+            mark_size(size() - 1);
+            utils::destroy_at(end());
+        }
+        void erase(size_type position) {
+            if (position >= size()) return;
+            else {
+                utils::destroy_at(begin() + position);
+                std::uninitialized_move(begin() + position + 1, end(), begin() + position);
+                mark_size(size() - 1);
+            }
+        }
+    private:
+        inline void assure_capacity(const size_t& target) noexcept {
+            if(mem_state == MEM_STATE::uninitialized) {
+                mem_state = MEM_STATE::locally;
+                mem_union.local_storage.usage = 0;
+            }
+            if (capacity() >= target) return;
+            if(mem_state == MEM_STATE::on_heap) {
+                size_type new_capacity = capacity();
+                while(new_capacity < target) new_capacity <<= 1;
+                T *mem_start = reinterpret_cast<T *>(::operator new(new_capacity * sizeof(value_type)));
+                T *mem_end = mem_start + new_capacity;
+                T *mem_usage = mem_start + size();
+                std::uninitialized_move(begin(), end(), mem_start);
+                for(auto iter = begin(), the_end = end(); iter < the_end; ++iter) {
+                    utils::destroy_at<T>(&(*iter));
+                }
+                auto a = static_cast<void* >(mem_union.heap_storage.mem_start);
+                ::operator delete(a, (mem_union.heap_storage.mem_start - mem_union.heap_storage.mem_end) * sizeof(T));
+                mem_union.heap_storage.mem_start = mem_start;
+                mem_union.heap_storage.mem_end = mem_end;
+                mem_union.heap_storage.mem_usage = mem_usage;
+            } else {
+                size_type new_capacity = capacity();
+                while(new_capacity < target) new_capacity <<= 1;
+                T *mem_start = reinterpret_cast<T *>(::operator new(new_capacity * sizeof(value_type)));
+                T *mem_end = mem_start + new_capacity;
+                T *mem_usage = mem_start + size();
+                std::uninitialized_move(begin(), end(), mem_start);
+                for(auto iter = begin(), the_end = end(); iter < the_end; ++iter) {
+                    utils::destroy_at<T>(&(*iter));
+                }
+                std::memset(reinterpret_cast<void *>(&mem_union), 0, sizeof(mem_union));
+                mem_union.heap_storage.mem_start = mem_start;
+                mem_union.heap_storage.mem_end = mem_end;
+                mem_union.heap_storage.mem_usage = mem_usage;
+                mem_state = MEM_STATE::on_heap;
+            }
+        }
+        inline void mark_size(const size_t& target) noexcept {
+            if(capacity() < target) return; /// @attention should not be called
+            else if(mem_state == MEM_STATE::locally) {
+                mem_union.local_storage.usage = target;
+            } else {
+                mem_union.heap_storage.mem_usage = mem_union.heap_storage.mem_start + target;
+            }
+        }
+        enum class MEM_STATE : unsigned char {
+            uninitialized,
+            locally,
+            on_heap
+        } mem_state;
+        union MEM_UNION {
+            struct {
+                std::aligned_storage_t<LocalSize * sizeof(T), alignof(T)> storage;
+                size_type usage;
+            } local_storage;
+            struct {
+                T *mem_start, *mem_end, *mem_usage;
+            } heap_storage;
+        } mem_union;
+    };
+
+}
+
+
+#endif //DATA_STRUCTURE_FOR_LOVE_OPTIMIZED_VECTOR_HPP

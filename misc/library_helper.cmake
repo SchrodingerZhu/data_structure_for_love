@@ -1,0 +1,5 @@
+function (set_library name)
+    file(GLOB LIBFILE_${name} src/${name}/*.hpp src/${name}/*.cpp src/${name}/*.h)
+    add_library(lib_${name} STATIC ${LIBFILE_${name}})
+    SET_TARGET_PROPERTIES(lib_${name} PROPERTIES LINKER_LANGUAGE CXX)
+endfunction()
