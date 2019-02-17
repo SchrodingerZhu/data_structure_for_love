@@ -1,3 +1,4 @@
+#define MEMORY_LEAK_TEST
 #include <optimized_vector.hpp>
 #include <cassert>
 #include <vector>
@@ -19,7 +20,7 @@ inline auto random_string() {
     return test;
 }
 int main(){
-    std::clog << "- tests for optimized_vector" << std::endl;
+    std::clog << "- tests for optimized_vector [WITH MEMORY LEAK TEST]" << std::endl;
 
     auto _time = std::chrono::steady_clock::now().time_since_epoch().count();
     eng.seed(static_cast<unsigned>(_time));
@@ -207,3 +208,5 @@ int main(){
     std::clog << " [SUCCESS]\n";
     return 0;
 }
+
+#undef MEMORY_LEAK_TEST

@@ -14,6 +14,13 @@
 #include <cstring>
 #include <memory>
 #include <object_management.hpp>
+
+#ifdef MEMORY_LEAK_TEST
+
+#include <cassert>
+#include <iostream>
+
+#endif // MEMORY_LEAK_TEST
 namespace data_structure {
     template <typename T, std::size_t LocalSize = 13>
     class optimized_vector {
@@ -83,9 +90,15 @@ namespace data_structure {
             if (mem_state == MEM_STATE::uninitialized) return;
             for (auto &value : *this) utils::destroy_at(&value);
             if (mem_state == MEM_STATE::on_heap) {
-                auto a = static_cast<void* >(mem_union.heap_storage.mem_start);
-                ::operator delete(a, (mem_union.heap_storage.mem_start - mem_union.heap_storage.mem_end) * sizeof(T));
+                auto a = static_cast<void * >(mem_union.heap_storage.mem_start);
+                ::operator delete(a, (mem_union.heap_storage.mem_end - mem_union.heap_storage.mem_start) * sizeof(T));
+#ifdef MEMORY_LEAK_TEST
+                FREED += (mem_union.heap_storage.mem_end - mem_union.heap_storage.mem_start) * sizeof(T);
+#endif // MEMORY_LEAK_TEST
             }
+#ifdef MEMORY_LEAK_TEST
+            assert(FREED == ALLOCED);
+#endif // MEMORY_LEAK_TEST
         }
 
         iterator begin() noexcept {
@@ -166,6 +179,9 @@ namespace data_structure {
             }
         }
     private:
+#ifdef MEMORY_LEAK_TEST
+        std::size_t ALLOCED = 0, FREED = 0;
+#endif // MEMORY_LEAK_TEST
         inline void assure_capacity(const size_t& target) noexcept {
             if(mem_state == MEM_STATE::uninitialized) {
                 mem_state = MEM_STATE::locally;
@@ -175,7 +191,10 @@ namespace data_structure {
             if(mem_state == MEM_STATE::on_heap) {
                 size_type new_capacity = capacity();
                 while(new_capacity < target) new_capacity <<= 1;
-                T *mem_start = reinterpret_cast<T *>(::operator new(new_capacity * sizeof(value_type)));
+                auto *mem_start = reinterpret_cast<T *>(::operator new(new_capacity * sizeof(value_type)));
+#ifdef MEMORY_LEAK_TEST
+                ALLOCED += new_capacity * sizeof(value_type);
+#endif // MEMORY_LEAK_TEST
                 T *mem_end = mem_start + new_capacity;
                 T *mem_usage = mem_start + size();
                 std::uninitialized_move(begin(), end(), mem_start);
@@ -183,14 +202,20 @@ namespace data_structure {
                     utils::destroy_at<T>(&(*iter));
                 }
                 auto a = static_cast<void* >(mem_union.heap_storage.mem_start);
-                ::operator delete(a, (mem_union.heap_storage.mem_start - mem_union.heap_storage.mem_end) * sizeof(T));
+                ::operator delete(a, (mem_union.heap_storage.mem_end - mem_union.heap_storage.mem_start) * sizeof(T));
+#ifdef MEMORY_LEAK_TEST
+                FREED += (mem_union.heap_storage.mem_end - mem_union.heap_storage.mem_start) * sizeof(T);
+#endif // MEMORY_LEAK_TEST
                 mem_union.heap_storage.mem_start = mem_start;
                 mem_union.heap_storage.mem_end = mem_end;
                 mem_union.heap_storage.mem_usage = mem_usage;
             } else {
                 size_type new_capacity = capacity();
                 while(new_capacity < target) new_capacity <<= 1;
-                T *mem_start = reinterpret_cast<T *>(::operator new(new_capacity * sizeof(value_type)));
+                auto *mem_start = reinterpret_cast<T *>(::operator new(new_capacity * sizeof(value_type)));
+#ifdef MEMORY_LEAK_TEST
+                ALLOCED += new_capacity * sizeof(value_type);
+#endif // MEMORY_LEAK_TEST
                 T *mem_end = mem_start + new_capacity;
                 T *mem_usage = mem_start + size();
                 std::uninitialized_move(begin(), end(), mem_start);
