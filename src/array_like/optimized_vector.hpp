@@ -202,6 +202,31 @@ namespace data_structure {
                 mark_size(size() - 1);
             }
         }
+
+        void clear() { // TODO: Add test
+            if (mem_state == MEM_STATE::uninitialized) return;
+            for (auto &value : *this) utils::destroy_at(&value);
+            if (mem_state == MEM_STATE::on_heap) {
+                auto a = static_cast<void * >(mem_union.heap_storage.mem_start);
+                ::operator delete(a, (mem_union.heap_storage.mem_end - mem_union.heap_storage.mem_start) * sizeof(T));
+#ifdef MEMORY_LEAK_TEST
+                FREED += (mem_union.heap_storage.mem_end - mem_union.heap_storage.mem_start) * sizeof(T);
+#endif // MEMORY_LEAK_TEST
+            }
+            std::memset(reinterpret_cast<void *>(&mem_union), 0, sizeof(mem_union));
+            mem_state = MEM_STATE::uninitialized;
+        }
+
+        void resize(const size_t &target, value_type const &value = value_type()) { // TODO: Add test
+            while (size() > target) pop_back();
+            if (size() < target) {
+                assure_capacity(target);
+                mark_size(target);
+                for (size_type i = 0; i < target; ++i) {
+                    utils::emplace_construct<T>(begin() + i, value);
+                }
+            }
+        }
     private:
 #ifdef MEMORY_LEAK_TEST
         std::size_t ALLOCED = 0, FREED = 0;
