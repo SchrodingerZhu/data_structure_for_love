@@ -42,8 +42,22 @@ int main(){
     }
     std::clog << " [SUCCESS]\n";
 
+    std::clog << "--- simple data emplace_back";
+    for (int i = 0; i < 10'000; ++i) {
+        std_vec.push_back(get_rand());
+        test.emplace_back(std_vec.back());
+        if (i != 0) {
+            auto t = get_rand() % i;
+            assert(std_vec[t] == test[t]);
+        }
+    }
+    for (std::size_t i = 0; i < std_vec.size(); ++i) {
+        assert(std_vec[i] == test[i]);
+    }
+    std::clog << " [SUCCESS]\n";
+
     std::clog << "--- simple data pop_back";
-    for(int i = 0; i < 10'000; ++i) {
+    for (int i = 0; i < 20'000; ++i) {
         std_vec.pop_back();
         test.pop_back();
         if(i % 100 == 0) {
@@ -76,7 +90,7 @@ int main(){
     data_structure::optimized_vector<int, 500> test_2;
 
     std::clog << "--- local memory push_back";
-    for(int i = 0; i < 500; ++i) {
+    for (int i = 0; i < 250; ++i) {
         std_vec_2.push_back(get_rand());
         test_2.push_back(std_vec_2.back());
         if (i != 0) {
@@ -85,6 +99,20 @@ int main(){
         }
     }
     for(std::size_t j = 0; j < std_vec_2.size(); ++j) {
+        assert(std_vec_2[j] == test_2[j]);
+    }
+    std::clog << " [SUCCESS]\n";
+
+    std::clog << "--- local memory emplace_back";
+    for (int i = 0; i < 250; ++i) {
+        std_vec_2.push_back(get_rand());
+        test_2.emplace_back(std_vec_2.back());
+        if (i != 0) {
+            auto t = get_rand() % i;
+            assert(std_vec_2[t] == test_2[t]);
+        }
+    }
+    for (std::size_t j = 0; j < std_vec_2.size(); ++j) {
         assert(std_vec_2[j] == test_2[j]);
     }
     std::clog << " [SUCCESS]\n";
@@ -137,8 +165,22 @@ int main(){
     }
     std::clog << " [SUCCESS]\n";
 
+    std::clog << "--- complex data emplace_back";
+    for (int i = 0; i < complex_test_size; ++i) {
+        std_complex_vec.push_back(random_string());
+        complex_test.emplace_back(std_complex_vec.back());
+        if (i != 0) {
+            auto t = get_rand() % i;
+            assert(std_complex_vec[t] == complex_test[t]);
+        }
+    }
+    for (std::size_t i = 0; i < std_vec.size(); ++i) {
+        assert(std_complex_vec[i] == complex_test[i]);
+    }
+    std::clog << " [SUCCESS]\n";
+
     std::clog << "--- complex data pop_back";
-    for(int i = 0; i < complex_test_size; ++i) {
+    for (int i = 0; i < complex_test_size * 2; ++i) {
         std_complex_vec.pop_back();
         complex_test.pop_back();
         if(i % 10 == 0) {

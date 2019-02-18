@@ -166,6 +166,30 @@ namespace data_structure {
                 utils::emplace_construct<T>(mem_union.heap_storage.mem_usage++, value);
             }
         }
+
+        void push_back(value_type &&value) {
+            assure_capacity(size() + 1);
+            if (mem_state == MEM_STATE::locally) {
+                utils::emplace_construct<T>(
+                        reinterpret_cast<T *>(&(mem_union.local_storage.storage)) + (mem_union.local_storage.usage++),
+                        std::move(value));
+            } else {
+                utils::emplace_construct<T>(mem_union.heap_storage.mem_usage++, std::move(value));
+            }
+        }
+
+        template<typename ...Args>
+        void emplace_back(Args &&...args) {
+            assure_capacity(size() + 1);
+            if (mem_state == MEM_STATE::locally) {
+                utils::emplace_construct<T>(
+                        reinterpret_cast<T *>(&(mem_union.local_storage.storage)) + (mem_union.local_storage.usage++),
+                        std::forward<Args>(args)...);
+            } else {
+                utils::emplace_construct<T>(mem_union.heap_storage.mem_usage++, std::forward<Args>(args)...);
+            }
+        }
+
         void pop_back() {
             mark_size(size() - 1);
             utils::destroy_at(end());
