@@ -8,7 +8,7 @@ include(misc/test_helper.cmake)
 include_directories(utils src/array_like)
 
 
-#add_library(array_like STATIC src/array_like/optimized_vector.hpp src/array_like/array_queue.hpp)
+#add_library(array_like STATIC src/array_like/optimized_vectorsxs.hpp src/array_like/array_queue.hpp)
 #SET_TARGET_PROPERTIES(array_like PROPERTIES LINKER_LANGUAGE CXX)
 
 
