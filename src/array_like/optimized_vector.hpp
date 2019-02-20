@@ -227,6 +227,9 @@ namespace data_structure {
                 }
             }
         }
+
+        bool empty() {return size() == 0;}
+        T& back() {return *(end() - 1);}
     private:
 #ifdef MEMORY_LEAK_TEST
         std::size_t ALLOCED = 0, FREED = 0;
