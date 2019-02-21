@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.12)
 project(data_structure_for_love)
 
 set(CMAKE_CXX_STANDARD 17)
-add_compile_options(-O2)
+add_compile_options(-O3)
 include(misc/test_helper.cmake)
 #include(misc/library_helper.cmake)
 include_directories(utils src/array_like src/memory)

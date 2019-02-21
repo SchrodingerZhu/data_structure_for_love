@@ -67,14 +67,23 @@ namespace data_structure {
 
         optimized_vector(optimized_vector &&that) noexcept {
             static_assert(LocalSize, "LocalSize cannot be zero");
-            mem_state = MEM_STATE::uninitialized;
+            mem_state = that.mem_state;
             std::memset(reinterpret_cast<void *>(&mem_union), 0, sizeof(mem_union));
             if (that.mem_state == MEM_STATE::uninitialized) return;
-            else {
-                assure_capacity(that.size());
+            else if(that.mem_state == MEM_STATE::locally){
                 mark_size(that.size());
                 std::uninitialized_move(that.begin(), that.end(), begin());
+            } else {
+                mem_union.heap_storage.mem_start = that.mem_union.heap_storage.mem_start;
+                mem_union.heap_storage.mem_usage = that.mem_union.heap_storage.mem_usage;
+                mem_union.heap_storage.mem_end = that.mem_union.heap_storage.mem_end;
+#ifdef MEMORY_LEAK_TEST
+                this->ALLOCED = that.ALLOCED;
+                this->FREED = that.FREED;
+                that.FREED = that.ALLOCED = 0;
+#endif // MEMORY_LEAK_TEST
             }
+            mem_state = that.mem_state;
             that.mem_state = MEM_STATE::uninitialized;
             std::memset(reinterpret_cast<void *>(&that.mem_union), 0, sizeof(that.mem_union));
         }
@@ -90,8 +99,7 @@ namespace data_structure {
             if (mem_state == MEM_STATE::uninitialized) return;
             for (auto &value : *this) utils::destroy_at(&value);
             if (mem_state == MEM_STATE::on_heap) {
-                auto a = static_cast<void * >(mem_union.heap_storage.mem_start);
-                ::operator delete(a, (mem_union.heap_storage.mem_end - mem_union.heap_storage.mem_start) * sizeof(T));
+                ::operator delete(static_cast<void * >(mem_union.heap_storage.mem_start));
 #ifdef MEMORY_LEAK_TEST
                 FREED += (mem_union.heap_storage.mem_end - mem_union.heap_storage.mem_start) * sizeof(T);
 #endif // MEMORY_LEAK_TEST
@@ -207,8 +215,7 @@ namespace data_structure {
             if (mem_state == MEM_STATE::uninitialized) return;
             for (auto &value : *this) utils::destroy_at(&value);
             if (mem_state == MEM_STATE::on_heap) {
-                auto a = static_cast<void * >(mem_union.heap_storage.mem_start);
-                ::operator delete(a, (mem_union.heap_storage.mem_end - mem_union.heap_storage.mem_start) * sizeof(T));
+                ::operator delete(static_cast<void * >(mem_union.heap_storage.mem_start));
 #ifdef MEMORY_LEAK_TEST
                 FREED += (mem_union.heap_storage.mem_end - mem_union.heap_storage.mem_start) * sizeof(T);
 #endif // MEMORY_LEAK_TEST
@@ -254,7 +261,7 @@ namespace data_structure {
                     utils::destroy_at<T>(&(*iter));
                 }
                 auto a = static_cast<void* >(mem_union.heap_storage.mem_start);
-                ::operator delete(a, (mem_union.heap_storage.mem_end - mem_union.heap_storage.mem_start) * sizeof(T));
+                ::operator delete(static_cast<void * >(mem_union.heap_storage.mem_start));
 #ifdef MEMORY_LEAK_TEST
                 FREED += (mem_union.heap_storage.mem_end - mem_union.heap_storage.mem_start) * sizeof(T);
 #endif // MEMORY_LEAK_TEST
