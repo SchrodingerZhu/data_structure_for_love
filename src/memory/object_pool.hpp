@@ -14,24 +14,24 @@
 #include <optimized_vector.hpp>
 #include <iostream>
 #include <cassert>
-
+#include <unordered_set>
 namespace data_structure {
     template<typename T, std::size_t ChunkSize = 1000,
-            typename PtrContainer = std::vector<T *>>
+            typename PtrContainer = optimized_vector<T *>,
+            typename PtrHashCollection = std::unordered_set<T *>>
     class ObjectPool {
     private:
-        using ObjPool = ObjectPool<T, ChunkSize, PtrContainer>;
         using Chunk = std::aligned_storage_t<ChunkSize * sizeof(T), alignof(T)>;
     public:
         using size_type = std::size_t;
         using differece_type = std::ptrdiff_t;
 
         ObjectPool() = default;
-        ObjectPool (ObjPool const &that) = delete;
+        ObjectPool (ObjectPool const &that) = delete;
 
-        ObjectPool &operator=(ObjPool const &that) = delete;
+        ObjectPool &operator=(ObjectPool const &that) = delete;
 
-        ObjectPool(ObjPool &&that) noexcept {
+        ObjectPool(ObjectPool &&that) noexcept {
             chunk_end = that.chunk_end;
             current_address = that.current_address;
             that.current_address = that.chunk_end =  nullptr;
@@ -39,7 +39,7 @@ namespace data_structure {
             recycle_list = std::move(that.recycle_list);
         }
 
-        ObjectPool &operator=(ObjPool &&that) noexcept {
+        ObjectPool &operator=(ObjectPool &&that) noexcept {
             chunk_end = that.chunk_end;
             current_address = that.current_address;
             that.current_address = that.chunk_end =  nullptr;
@@ -51,17 +51,16 @@ namespace data_structure {
             if (!recycle_list.empty()) {
                 T *res = recycle_list.back();
                 recycle_list.pop_back();
+                active.insert(res);
                 return res;
             }
             if (chunk_end == current_address) alloc_chunk();
-            return current_address++;
+            return active.insert(current_address), current_address++;
         }
 
         template <typename ...Args>
         [[nodiscard]] T *construct_raw(Args&& ...args) {
             T* address = get_raw();
-
-
             utils::emplace_construct(address, std::forward<Args>(args)...);
             return address;
         };
@@ -69,6 +68,7 @@ namespace data_structure {
         inline void recycle(T* address) {
             utils::destroy_at(address);
             std::memset(address, 0, sizeof(T));
+            active.erase(address);
             recycle_list.push_back(address);
         }
 
@@ -83,6 +83,9 @@ namespace data_structure {
         };
 
         ~ObjectPool() {
+            for(auto i: active) {
+                utils::destroy_at(i);
+            }
             for(auto i : pool) {
                 ::operator delete(reinterpret_cast<void *>(i), sizeof(T) * ChunkSize);
             }
@@ -91,9 +94,9 @@ namespace data_structure {
         T *chunk_end = nullptr, *current_address = nullptr;
         PtrContainer pool{};
         PtrContainer recycle_list {};
+        PtrHashCollection active {};
         void alloc_chunk() {
             pool.push_back(reinterpret_cast<T *>(::operator new(sizeof(T) * ChunkSize)));
-            //std::memset(pool.back(), 0, sizeof(T) * ChunkSize);
             chunk_end = current_address = pool.back();
             chunk_end += ChunkSize;
         }

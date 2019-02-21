@@ -63,17 +63,16 @@ int main() {
     std::vector<std::string> test_strings {};
     std::vector<std::shared_ptr<string>> test_pool_complex;
 
-
+    std::clog << "testing complex pool ";
     for(int i = 0; i < 5000; ++i) {
         auto str = random_string();
         test_strings.push_back(str);
         auto t = str_pool.construct_shared(str);
-        //std::cout << t << std::endl;
-        //std::cout << t2 << std::endl;
         test_pool_complex.emplace_back(std::move(t));
     }
     for (int i = 0; i < 5000; ++i) {
         assert(test_strings[i] == *test_pool_complex[i]);
     }
+    std::clog << "[Success]\n";
     //quick_exit(0);
 }
