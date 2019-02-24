@@ -1,7 +1,7 @@
 //
 // Created by schrodinger on 2/22/19.
 //
-
+// TODO: Change children to hash multiset to handle one-father-many-pointers situation
 #ifndef DATA_STRUCTURE_FOR_LOVE_CHENEY_HEAP_HPP
 #define DATA_STRUCTURE_FOR_LOVE_CHENEY_HEAP_HPP
 
