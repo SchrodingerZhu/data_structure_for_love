@@ -2,7 +2,7 @@
 #include <array>
 #include <cstddef>
 #include <unordered_set>
-constexpr std::size_t HEAP_SIZE = 5000;
+constexpr std::size_t HEAP_SIZE = 500000;
 void *from = nullptr;
 void *to = nullptr;
 void *_free = nullptr;
@@ -165,7 +165,9 @@ struct TypeHelper<0, T, Tn...>{
     using type = T;
 };
 
-
+struct CollectableBase: public Object{
+    size_t header, footer;
+};
 
 template<typename T, typename ...Args>
 Object *make_object(Args&& ...args) {
@@ -188,7 +190,7 @@ struct wrapper_ptr{
 
 
 template<typename T, typename ...Tn>
-struct Collectable : public Object {
+struct Collectable : public CollectableBase {
     std::array<heap_pointer*, Count<T, Tn...>::count> pointers;
 
     template <size_t N>
@@ -217,7 +219,7 @@ private:
 
 
     template<typename U, typename ...Un>
-    friend Collectable<U, Un...>* make_collectable();
+    friend Collectable<U, Un...>* make_collectable(std::size_t);
 };
 
 
@@ -243,13 +245,24 @@ std::size_t collectable_size() {
 
 
 
-template<typename T, typename ...Tn>
-Collectable<T, Tn...>* make_collectable() {
+template<typename U, typename T, typename ...Tn, typename ...Args>
+Collectable<T, Tn...>* make_collectable(size_t all_size, Args... args) {
     auto ptr = reinterpret_cast<Collectable<T, Tn...> *>(_free);
-    ::new(ptr) Collectable<T, Tn...>();
-    ptr->size = collectable_size<T, Tn...>();
-    ptr->field = _free = reinterpret_cast<char *>(_free) + sizeof(Collectable<T, Tn...>);
+    std::array<heap_pointer*, Count<T, Tn...>::count> temp{};
+    ::new (ptr) Collectable<T, Tn...>();
+    auto field = ptr->field = _free = reinterpret_cast<char *>(_free) + sizeof(Collectable<T, Tn...>);
     __construct<T, Tn...>(ptr->pointers);
+    for(size_t i = 0; i < Count<T, Tn...>::count; ++i) {
+        temp[i] = ptr->pointers[i];
+    }
+    ::new(ptr) U(std::forward<Args>(args)...);
+    for(size_t i = 0; i < Count<T, Tn...>::count; ++i) {
+        ptr->pointers[i] = temp[i];
+    }
+    ptr->size = all_size;
+    ptr->header = sizeof(Collectable<T, Tn...>);
+    ptr->footer = sizeof(all_size - collectable_size<T, Tn...>());
+    ptr->field = field;
     return ptr;
 }
 
@@ -261,20 +274,29 @@ void construct_at(remote_ptr<T>& address, Args&& ...args) {
 template <typename T, typename ...Tn>
 template <typename U, typename ...Args>
 void Collectable<T, Tn...>::construct_self_at(remote_ptr<U> &address, Args &&... args) {
-    address = reinterpret_cast<Object *>(make_collectable<T, Tn...>(std::forward<Args>(args)...));
+    address = reinterpret_cast<Object *>(make_collectable<U, T, Tn...>(sizeof(U), std::forward<Args>(args)...));
 }
+
+
+
 
 template<typename T, typename... Tn>
 template<class U, typename ...Args>
 wrapper_ptr<U> Collectable<T, Tn...>::generate(Args&& ...args) {
-    auto ptr = make_collectable<T, Tn...>();
+    auto ptr = make_collectable<U, T, Tn...>(sizeof(U), std::forward<Args>(args)...);
     return wrapper_ptr<U>(reinterpret_cast<U *>(ptr));
 }
 
 
 class Node: public Collectable<
-        Ptr<Node>, Local<int>, Ptr<int>, Local<std::string>, Ptr<std::string>>
+        Ptr<Node>,
+        Local<int>,
+        Ptr<int>,
+        Local<std::string>,
+        Ptr<std::string>,
+        Local<std::array<int, 10000>>>
 {
+        int i = 123;
     public:
         void test(){
             auto& x = this->get<0>();
@@ -283,12 +305,24 @@ class Node: public Collectable<
             x->get<3>() = "1235";
             construct_at(this->get<2>(), 123);
             construct_at(this->get<4>(), "ZYF");
-            construct_self_at(x->get<0>());
-            x->get<0>()->get<1>() = 114514;
+            construct_self_at(x->get<0>(), 1);
+            //x->get<0>()->get<1>() = 114514;
             std::cout << x->get<0>()->get<1>() << std::endl;
             std::cout << x->get<3>() << std::endl;
             std::cout << *this->get<2>() << std::endl;
             std::cout << *this->get<4>() << std::endl;
+            for(int i = 0; i < 10; ++i) {
+                get<5>()[i] = i;
+            }
+            for(int i = 0; i < 10; ++i) {
+                std::cout << get<5>()[i] << std::endl;
+            }
+
+        }
+        Node() = default;
+        Node(int t) {
+            get<1>() = 1234567890 + 1;
+            i = 1000;
         }
 };
 
