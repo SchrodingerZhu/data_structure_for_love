@@ -56,7 +56,8 @@ struct Count<Head, Tail...> {
 template<size_t Size>
 constexpr void __construct(std::array<heap_pointer *, Size> &temp, size_t position = 0) {}
 
-
+template<size_t Size>
+constexpr void __move(std::array<heap_pointer *, Size> &from, std::array<heap_pointer *, Size> &to, size_t position = 0) {}
 
 class heap_pointer {
 public:
@@ -76,12 +77,25 @@ public:
         obj->pointers = this;
     }
 
+    heap_pointer(heap_pointer&& that) noexcept {
+        this->object = that.object;
+        this->next = that.next;
+        this->prev = that.prev;
+        if(this->prev) this->prev->next = this;
+        if(this->next) this->next->prev = this;
+        if(object && object->pointers == &that) {
+            object->pointers = this;
+        }
+    }
     heap_pointer& operator=(heap_pointer&& that) noexcept {
         this->object = that.object;
         this->next = that.next;
         this->prev = that.prev;
         if(this->prev) this->prev->next = this;
         if(this->next) this->next->prev = this;
+        if(object && object->pointers == &that) {
+            object->pointers = this;
+        }
         return *this;
     }
 
@@ -98,13 +112,9 @@ public:
 
     }
 
-//    remote_ptr(remote_ptr&& that) noexcept : heap_pointer()  {
-//        this->field = that.field;
-//        this->next = that.next;
-//        this->prev = that.prev;
-//        if(this->prev) this->prev->next = this;
-//        if(this->next) this->next->prev = this;
-//    }
+    remote_ptr(remote_ptr&& that) noexcept : heap_pointer(that)  {
+
+    }
 
 
     remote_ptr& operator=(Object* that) noexcept {
@@ -166,7 +176,7 @@ struct TypeHelper<0, T, Tn...>{
 };
 
 struct CollectableBase: public Object{
-    size_t header, footer;
+    size_t header;
 };
 
 template<typename T, typename ...Args>
@@ -179,6 +189,18 @@ Object *make_object(Args&& ...args) {
     _free = reinterpret_cast<char *>(_free) + object_size<T>();
     return ptr;
 }
+
+template<typename T>
+Object *move_object(Object* from) { /// @attention: must move following the order
+    auto to = reinterpret_cast<Object *>(_free);
+    ::new(to) Object;
+    to->size = from->size;
+    to->field = reinterpret_cast<char *>(_free) + sizeof(Object);
+    ::new (reinterpret_cast<T *>(to->field)) T (std::move(*reinterpret_cast<T *>(from->field)));
+    _free = reinterpret_cast<char *>(_free) + object_size<T>();
+    return to;
+}
+
 
 template <class T>
 struct wrapper_ptr{
@@ -226,7 +248,7 @@ private:
 
 
 
-template<class T, class ...Args, size_t Size>
+template<class T, class ...Tn,  size_t Size>
 constexpr void __construct(std::array<heap_pointer *, Size> &temp, size_t position = 0) {
     if (T::is_ptr) {
         pointers.insert(reinterpret_cast<Object *>(free));
@@ -235,8 +257,23 @@ constexpr void __construct(std::array<heap_pointer *, Size> &temp, size_t positi
         temp[position] = new heap_pointer(make_object<typename T::type>());
     }
 
-    __construct<Args...>(temp, position + 1);
+    __construct<Tn...>(temp, position + 1);
 }
+
+
+template<class T, class ...Tn,  size_t Size>
+constexpr void __move(std::array<heap_pointer *, Size> &from, std::array<heap_pointer *, Size> &to, size_t position = 0) {
+    if (T::is_ptr) {
+        pointers.insert(reinterpret_cast<Object *>(_free));
+        to[position] = new heap_pointer(move_object<typename T::type>(from[position]->object));
+        delete from[position];
+    } else {
+        to[position] = new heap_pointer(move_object<typename T::type>(from[position]->object));
+    }
+
+    __construct<Tn...>(from, to, position + 1);
+}
+
 
 template<typename T, typename ...Tn>
 std::size_t collectable_size() {
@@ -246,7 +283,7 @@ std::size_t collectable_size() {
 
 
 template<typename U, typename T, typename ...Tn, typename ...Args>
-Collectable<T, Tn...>* make_collectable(size_t all_size, Args... args) {
+Collectable<T, Tn...>* make_collectable(Args... args) {
     auto ptr = reinterpret_cast<Collectable<T, Tn...> *>(_free);
     std::array<heap_pointer*, Count<T, Tn...>::count> temp{};
     ::new (ptr) Collectable<T, Tn...>();
@@ -259,11 +296,29 @@ Collectable<T, Tn...>* make_collectable(size_t all_size, Args... args) {
     for(size_t i = 0; i < Count<T, Tn...>::count; ++i) {
         ptr->pointers[i] = temp[i];
     }
-    ptr->size = all_size;
-    ptr->header = sizeof(Collectable<T, Tn...>);
-    ptr->footer = sizeof(all_size - collectable_size<T, Tn...>());
+    ptr->size = sizeof(U);
     ptr->field = field;
     return ptr;
+}
+
+
+template<typename U, typename T, typename ...Tn>
+Collectable<T, Tn...>* move_collectable(Collectable<T, Tn...>* from) {
+    std::array<heap_pointer*, Count<T, Tn...>::count> temp{};
+    auto to = reinterpret_cast<decltype(from)>(_free);
+    ::new (to) Collectable<T, Tn...>();
+    auto field = to->field = _free = reinterpret_cast<char *>(_free) + sizeof(Collectable<T, Tn...>);
+    __move<T, Tn...>(from->pointers, to->pointers);
+    for(size_t i = 0; i < Count<T, Tn...>::count; ++i) {
+        temp[i] = to->pointers[i];
+    }
+    ::new(to) U(std::move(*reinterpret_cast<U *>(from)));
+    for(size_t i = 0; i < Count<T, Tn...>::count; ++i) {
+        to->pointers[i] = temp[i];
+    }
+    to->size = sizeof(U);
+    to->field = field;
+    return to;
 }
 
 template<typename T, typename ...Args>
@@ -271,10 +326,11 @@ void construct_at(remote_ptr<T>& address, Args&& ...args) {
     address = make_object<T>(std::forward<Args>(args)...);
 };
 
+
 template <typename T, typename ...Tn>
 template <typename U, typename ...Args>
 void Collectable<T, Tn...>::construct_self_at(remote_ptr<U> &address, Args &&... args) {
-    address = reinterpret_cast<Object *>(make_collectable<U, T, Tn...>(sizeof(U), std::forward<Args>(args)...));
+    address = reinterpret_cast<Object *>(make_collectable<U, T, Tn...>(std::forward<Args>(args)...));
 }
 
 
@@ -283,7 +339,7 @@ void Collectable<T, Tn...>::construct_self_at(remote_ptr<U> &address, Args &&...
 template<typename T, typename... Tn>
 template<class U, typename ...Args>
 wrapper_ptr<U> Collectable<T, Tn...>::generate(Args&& ...args) {
-    auto ptr = make_collectable<U, T, Tn...>(sizeof(U), std::forward<Args>(args)...);
+    auto ptr = make_collectable<U, T, Tn...>(std::forward<Args>(args)...);
     return wrapper_ptr<U>(reinterpret_cast<U *>(ptr));
 }
 
@@ -333,7 +389,7 @@ int main() {
     from = ::operator new(HEAP_SIZE * 2);
     to = reinterpret_cast<char *>(from) + HEAP_SIZE;
     _free = from;
-    auto t = Node::generate<Node>();
+    auto t = Node::generate<Node>(1);
     t.object->test();
     std::cout << sizeof(Node) << std::endl << sizeof(Collectable<Ptr<Node>, Local<int>, Ptr<int>>);
     return 0;
