@@ -381,44 +381,22 @@ class Node: public Collectable<
         Local<int>, Local<int>, Local<size_t>, Ptr<size_t>, Local<std::string>, Ptr<Node>>
 {
     public:
-        void test(){
-//            auto& x = this->get<0>();
-//            construct_self_at(x);
-//            x->get<1>() = 1;
-//            x->get<3>() = "1235";
-//            construct_at(this->get<2>(), 123);
-//            construct_at(this->get<4>(), "ZYF");
-//            //construct_self_at(x->get<0>(), 1);
-//            //x->get<0>()->get<1>() = 114514;
-//            //std::cout << x->get<0>()->get<1>() << std::endl;
-//            std::cout << x->get<3>() << std::endl;
-//            std::cout << *this->get<2>() << std::endl;
-//            std::cout << *this->get<4>() << std::endl;
-//            for(int i = 0; i < 10; ++i) {
-//                get<5>()[i] = i;
-//            }
-//            for(int i = 0; i < 10; ++i) {
-//                std::cout << get<5>()[i] << std::endl;
-//            }
-
-        }
         Node() = default;
 
         Node(int t, int child = 0) {
             get<1>() = 1234567890 + 1;
             construct_at(get<3>(), 1234);
             construct_self_at(get<5>());
-//            auto& p = this->get<0>();
-            //construct_self_at(this->get<0>());
         }
 };
 
 void garbage_collect() {
     auto scan = _free = to;
+    decltype(roots) new_roots{};
     for (Object* i: roots) {
-        roots.erase(i);
-        roots.insert(i->_move());
+        new_roots.insert(i->_move());
     }
+    roots = std::move(new_roots);
     while(scan != _free) {
         auto t = reinterpret_cast<Object *>(scan);
         auto p = as_pointer_of<CollectableBase>(t);
@@ -500,12 +478,30 @@ int main() {
     _free = from;
 //    auto t = Node::generate<Node>(1);
     auto t = Node::generate<Node>(2);
+    auto h = Node::generate<Node>(2);
     wander(t.object);
-    //garbage_collect();
+    garbage_collect();
+    std::cout << std::endl;
+    wander(t.object);
+    garbage_collect();
+    std::cout << std::endl;
+    wander(t.object);
+    garbage_collect();
+    garbage_collect();
+    garbage_collect();
+    garbage_collect();
+    garbage_collect();
+    garbage_collect();
+    garbage_collect();
+    garbage_collect();
+    garbage_collect();
+    garbage_collect();
+    garbage_collect();
+    garbage_collect();
     std::cout << std::endl;
     wander(t.object);
 
-    t->test();
+    // t->test();
     //garbage_collect();
     // std::cout << sizeof(Node) << std::endl << sizeof(Collectable<Ptr<Node>, Local<int>, Ptr<int>>);
     return 0;
