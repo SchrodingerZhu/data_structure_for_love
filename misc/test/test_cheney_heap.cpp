@@ -241,9 +241,7 @@ struct CollectableBase: public Object {};
 template<typename T, typename ...Tn>
 struct Collectable : public CollectableBase {
     std::array<Object*, Count<T, Tn...>::count> fields; //no init please
-    Collectable() {
-        this->fields = std::move(this->fields);
-    };
+    Collectable() = default;
     template <size_t N>
     auto& get(){
         //return _get<N>(typename TypeHelper<N, T, Tn...>::type::is_ptr_type());
