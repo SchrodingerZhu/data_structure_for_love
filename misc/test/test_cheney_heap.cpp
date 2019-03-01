@@ -2,6 +2,7 @@
 #include <array>
 #include <cstddef>
 #include <unordered_set>
+#include <cheney_heap.hpp>
 constexpr std::size_t HEAP_SIZE = 5000000;
 void *from = nullptr;
 void *to = nullptr;
@@ -516,7 +517,11 @@ void wander(Object *t) {
         }
     }
 }
+
 int main() {
+    auto test = data_structure::CheneyHeap();
+    auto test2 = data_structure::CheneyHeap::Collectable<Local<int>>();
+    //test2.move_children(nullptr);
     from = ::operator new(HEAP_SIZE * 2);
     to = reinterpret_cast<char *>(from) + HEAP_SIZE;
     _free = from;
