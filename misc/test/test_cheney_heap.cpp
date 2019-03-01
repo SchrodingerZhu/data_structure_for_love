@@ -507,6 +507,12 @@ void wander(Object *t) {
         if(as_pointer_of<CollectableBase>(t)) {
             std::cout << "[collectable]"  << std::endl;
             reinterpret_cast<CollectableBase *>(t)->show_children();
+        } else {
+            std::cout << "[single object]"  << std::endl;
+            std::cout << "------------------------------" << std::endl;
+            std::cout << "address: " << t->field << std::endl;
+            std::cout << "size: " << t->size - t->header << std::endl;
+            std::cout << "[basic chunk]"  << std::endl;
         }
     }
 }
