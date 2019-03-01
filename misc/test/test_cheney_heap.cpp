@@ -8,7 +8,12 @@ void *to = nullptr;
 void *_free = nullptr;
 
 #include <utility>
-// TODO: change fields back to object* [IMPORTANT]
+// TODO: change fields back to void*
+    /// @todo size [ok]
+    /// @todo array [ok]
+    /// @todo move & construct [ok]
+    /// @todo debug info
+
 
 // TODO: FIX MORE ABOUT REMOTE_PTR
 
@@ -17,7 +22,7 @@ struct Object;
 
 class heap_pointer;
 std::unordered_set<Object *> roots{};
-std::unordered_set<Object *> ptrs{};
+std::unordered_set<void *> ptrs{};
 template <class Child, class Parent, typename = std::enable_if_t<std::is_base_of_v<Parent, Child>>>
 Child* as_pointer_of(Parent* t){
     return dynamic_cast<Child *>(t);
@@ -57,7 +62,7 @@ struct Size {
 };
 template<typename Head, typename... Tail>
 struct Size<Head, Tail...> {
-    constexpr static size_t size = sizeof(Object) + sizeof(typename Head::type) + Size<Tail...>::size;
+    constexpr static size_t size = sizeof(typename Head::type) + Size<Tail...>::size;
 };
 
 template<typename... A>
@@ -70,10 +75,10 @@ struct Count<Head, Tail...> {
 };
 
 template<size_t Size>
-constexpr void __construct(std::array<Object *, Size> &temp, size_t position = 0) {}
+constexpr void __construct(std::array<void *, Size> &temp, size_t position = 0) {}
 
 template<size_t Size>
-constexpr void __move(std::array<Object *, Size> &from, std::array<Object *, Size> &to, size_t position = 0) {}
+constexpr void __move(std::array<void *, Size> &from, std::array<void *, Size> &to, size_t position = 0) {}
 
 class heap_pointer {
 public:
@@ -170,7 +175,7 @@ public:
 
 template<typename T>
 struct Ptr {
-    using base_type = T*;
+    using base_type = T;
     using type = remote_ptr<T>;
     constexpr static bool is_ptr = true;
     using is_ptr_type = std::true_type;
@@ -178,6 +183,7 @@ struct Ptr {
 template<typename T>
 struct Local {
     using type = T;
+    using base_type = T;
     constexpr static bool is_ptr = false;
     using is_ptr_type = std::false_type;
 };
@@ -234,18 +240,21 @@ struct wrapper_ptr{
     }
 };
 
+void wander(Object *t);
 
-
-struct CollectableBase: public Object {};
+struct CollectableBase: public Object {
+    virtual void move_children() {throw "This should not be called.\n";}
+    virtual void show_children() {throw "This should not be called.\n";}
+};
 
 template<typename T, typename ...Tn>
 struct Collectable : public CollectableBase {
-    std::array<Object*, Count<T, Tn...>::count> fields; //no init please
+    std::array<void*, Count<T, Tn...>::count> fields; //no init please
     Collectable() = default;
     template <size_t N>
     auto& get(){
         //return _get<N>(typename TypeHelper<N, T, Tn...>::type::is_ptr_type());
-        return *reinterpret_cast<typename TypeHelper<N, T, Tn...>::type::type*>(fields[N]->field);
+        return *reinterpret_cast<typename TypeHelper<N, T, Tn...>::type::type*>(fields[N]);
     }
 
     template<typename U, typename ...Args>
@@ -256,6 +265,48 @@ struct Collectable : public CollectableBase {
         auto res = move_collectable(this);
         return res;
     }
+    void move_children() override {
+        _move_children<0, T, Tn...>();
+    }
+    template <std::size_t N, typename U, typename ...Un>
+    void _move_children() {
+        if(U::is_ptr) {
+            auto c_ptr = reinterpret_cast<heap_pointer *>(fields[N]);
+            if(c_ptr->object) {
+                c_ptr->object->_move();
+            }
+        }
+        //if(N == 0) return;
+        _move_children<N + 1, Un...>();
+    }
+    template  <std::size_t>
+    void _move_children(){; }
+
+    void show_children() override {
+        _show_children<0, T, Tn...>();
+    }
+    template <std::size_t N, typename U, typename ...Un>
+    void _show_children() {
+        std::cout << "------------------------------" << std::endl;
+        std::cout << "address: " << fields[N] << std::endl;
+        std::cout << "size: " << sizeof(typename U::type) << std::endl;
+        if(U::is_ptr) {
+            auto c_ptr = reinterpret_cast<heap_pointer *>(fields[N]);
+            std::cout << "to: " << c_ptr->object << std::endl;
+            std::cout << "[pointer]" << std::endl;
+            if(c_ptr->object) {
+                wander(c_ptr->object);
+            }
+
+        } else {
+            std::cout << "[basic chunk]" << std::endl;
+            //std::cout << std::endl;
+        }
+        //if(N == 0) return;
+        _show_children<N + 1, Un...>();
+    }
+    template  <std::size_t>
+    void _show_children(){; }
     template <class U, typename ...Args>
     static remote_ptr<U> generate(Args&& ...);
 
@@ -281,9 +332,10 @@ private:
 
 
 template<class T, class ...Tn,  size_t Size>
-constexpr void __construct(std::array<Object *, Size> &temp, size_t position = 0) {
+constexpr void __construct(std::array<void *, Size> &temp, size_t position = 0) {
 
-    temp[position] = make_object<typename T::type>();
+    temp[position] = new (_free) typename T::type ();
+    _free = reinterpret_cast<typename T::type *>(_free) + 1;
     if(T::is_ptr) {
         ptrs.insert(temp[position]);
     }
@@ -293,10 +345,11 @@ constexpr void __construct(std::array<Object *, Size> &temp, size_t position = 0
 
 
 template<class T, class ...Tn,  size_t Size>
-constexpr void __move(std::array<Object *, Size> &from, std::array<Object *, Size> &to, size_t position = 0) {
+constexpr void __move(std::array<void *, Size> &from, std::array<void *, Size> &to, size_t position = 0) {
 
-    to[position] = move_object<typename T::type>(
-                reinterpret_cast<SingleObject<typename T::type>*>(from[position]));
+    to[position] = ::new (_free) typename T::type(std::move(
+                *reinterpret_cast<typename T::type*>(from[position])));
+    _free = reinterpret_cast<typename T::type *>(_free) + 1;
     if(ptrs.count(from[position])) {
         ptrs.erase(from[position]);
         ptrs.insert(to[position]);
@@ -315,7 +368,7 @@ std::size_t collectable_size() {
 template<typename U, typename T, typename ...Tn, typename ...Args>
 Collectable<T, Tn...>* make_collectable(Args... args) {
     auto ptr = reinterpret_cast<Collectable<T, Tn...> *>(_free);
-    std::array<Object*, Count<T, Tn...>::count> temp{};
+    std::array<void *, Count<T, Tn...>::count> temp{};
     ::new (ptr) Collectable<T, Tn...>();
     auto field = ptr->field = _free = reinterpret_cast<char *>(_free) + sizeof(Collectable<T, Tn...>);
     __construct<T, Tn...>(ptr->fields);
@@ -335,7 +388,7 @@ Collectable<T, Tn...>* make_collectable(Args... args) {
 
 template<typename T, typename ...Tn>
 Collectable<T, Tn...>* move_collectable(Collectable<T, Tn...>* from) {
-    std::array<Object*, Count<T, Tn...>::count> temp{};
+    std::array<void*, Count<T, Tn...>::count> temp{};
     auto to = reinterpret_cast<decltype(from)>(_free);
     ::new (to) Collectable<T, Tn...>();
     auto field = to->field = _free = reinterpret_cast<char *>(_free) + sizeof(Collectable<T, Tn...>);
@@ -400,18 +453,7 @@ void garbage_collect() {
     while(scan != _free) {
         auto t = reinterpret_cast<Object *>(scan);
         auto p = as_pointer_of<CollectableBase>(t);
-        if(p) {
-            auto objects = reinterpret_cast<Object *>(p->field);
-            while(reinterpret_cast<char *>(objects) - reinterpret_cast<char *>(p) != p->size) {
-                if(ptrs.count(objects)) {
-                    auto ptr = reinterpret_cast<heap_pointer *>(objects->field);
-                    if(ptr->object) {
-                        ptr->object->_move();
-                    }
-                }
-                objects = reinterpret_cast<Object *>(reinterpret_cast<char *>(objects) + objects->size);
-            }
-        }
+        if(p) p->move_children();
         scan = reinterpret_cast<char *>(scan) + t->size;
     }
     std::swap(from, to);
@@ -456,19 +498,15 @@ void wander(Object *t) {
         std::cout << "header: " << t->header << std::endl;
 
             //std::cout << "This is a collectable!" << std::endl;
-        if(ptrs.count(t)) {
-            auto m = reinterpret_cast<heap_pointer *>(t->field);
-            std::cout << "[pointer]"  << std::endl;
-            std::cout << "to: " << m->object << std::endl;
-            if(m->object) wander(m->object);
-        }
+//        if(ptrs.count(t)) {
+//            auto m = reinterpret_cast<heap_pointer *>(t->field);
+//            std::cout << "[pointer]"  << std::endl;
+//            std::cout << "to: " << m->object << std::endl;
+//            if(m->object) wander(m->object);
+//        }
         if(as_pointer_of<CollectableBase>(t)) {
             std::cout << "[collectable]"  << std::endl;
-            auto field = reinterpret_cast<char *>(t->field);
-            while (field  != t->size + reinterpret_cast<char *>(t)) {
-                wander(reinterpret_cast<Object *>(field));
-                field += reinterpret_cast<Object *>(field)->size;
-            }
+            reinterpret_cast<CollectableBase *>(t)->show_children();
         }
     }
 }
