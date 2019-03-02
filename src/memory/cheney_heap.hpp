@@ -10,12 +10,17 @@
 #include <unordered_set>
 
 #include <sundries.hpp>
-
+#include <object_management.hpp>
 #include <memory>
+#include <cassert>
+
 #ifdef DEBUG
 #include <iostream>
 #endif // DEBUG
 
+
+/// @attention when using this heap, it is encouraged not to use recursive constructors, because multi-grow may fail to
+// detect real space. However, if your heap size if big enough, it is okay to use that.
 namespace data_structure {
     class CheneyHeap{
         struct heap_pointer;
@@ -23,6 +28,9 @@ namespace data_structure {
         class SingleObjectBase;
         class CollectableBase;
         char *free = nullptr, *from = nullptr, *to = nullptr;
+        size_t heap_size {};
+        std::unordered_set<Object *> active {};
+        std::unordered_set<Object *> copied {};
     public:
         template <typename T> class SingleObject;
         template <typename T, typename... Tn> class Collectable;
@@ -30,11 +38,17 @@ namespace data_structure {
         template <typename T> struct Local;
         template <typename T> struct Ptr;
         std::unordered_set<Object *> roots {};
-        CheneyHeap() {
-            from = free = reinterpret_cast<char*>(::operator new(50000 << 1));
-            to = from + 50000;
+        explicit CheneyHeap(size_t heap_size = 20000) {
+            this->heap_size = heap_size;
+            from = free = reinterpret_cast<char*>(::operator new(heap_size << 1));
+            to = from + heap_size;
+        }
+        ~CheneyHeap() {
+            if(from < to) delete from;
+            else delete to;
         }
     private:
+
         template <typename T, typename... Tn>
         Collectable<T, Tn...>* move_collectable(Collectable<T, Tn...>* from);
         template<typename T, typename ...Args> SingleObject<T> *make_object(Args&& ...args);
@@ -60,7 +74,9 @@ namespace data_structure {
         template<typename T, typename ...Args>
         void construct_at(remote_ptr<T>& address, Args&& ...args);
 
-
+        bool in_new_range(char const *position) {
+            return position >= to && position - to < heap_size;
+        }
 
         void wander(Object *t);
     public:
@@ -70,6 +86,14 @@ namespace data_structure {
             }
         }
         void garbage_collect();
+        void grow(size_t least) {
+            while(heap_size <= least) heap_size <<= 3;
+            auto temp = from < to ? from : to;
+            to = reinterpret_cast<char*>(::operator new(heap_size << 1));
+            garbage_collect();
+            to = from + heap_size;
+            delete temp;
+        }
     };
 
 
@@ -94,12 +118,19 @@ namespace data_structure {
         CheneyHeap* heap; // no initialization
         heap_pointer *pointers = nullptr;
         virtual Object* _move() {throw "This should not be called"; };
+        virtual ~Object()  = default;
     };
 
-    class CheneyHeap::SingleObjectBase: public Object {};
+
+
+    class CheneyHeap::SingleObjectBase: public Object {
+        virtual void self_destroy() {throw "This should not be called.\n";}
+        friend CheneyHeap;
+    };
 
     struct CheneyHeap::CollectableBase: public Object {
         virtual void move_children() {throw "This should not be called.\n";}
+        virtual void self_destroy() {throw "This should not be called.\n";}
         virtual void show_children() {throw "This should not be called.\n";}
         friend CheneyHeap;
     };
@@ -109,6 +140,9 @@ namespace data_structure {
     class CheneyHeap::SingleObject: public SingleObjectBase{
         Object* _move() override {
             return heap->move_object(this);
+        }
+        ~SingleObject() override {
+            utils::destroy_at(reinterpret_cast<T *>(field));
         }
     };
 
@@ -135,7 +169,14 @@ namespace data_structure {
     using Local = CheneyHeap::Local<T>;
 
     template<typename T, typename ...Args> CheneyHeap::SingleObject<T> *CheneyHeap::make_object(Args&& ...args) {
+        if(free + object_size<T>() - from > heap_size) {
+            garbage_collect();
+        }
+        if(free + object_size<T>() - from > heap_size) {
+            grow(free + object_size<T>() - from);
+        }
         auto ptr = reinterpret_cast<SingleObject<T> *>(free);
+        active.insert(ptr);
         ::new(ptr) SingleObject<T>;
         ptr->size = object_size<T>();
         ptr->heap = this;
@@ -149,6 +190,7 @@ namespace data_structure {
     template<typename T>
     CheneyHeap::SingleObject<T> *CheneyHeap::move_object(SingleObject<T>* from) { /// @attention: must move following the order
         auto to = reinterpret_cast<SingleObject<T> *>(free);
+        copied.insert(to);
         ::new(to) SingleObject<T>;
         to->heap = this;
         to->size = from->size;
@@ -174,6 +216,7 @@ namespace data_structure {
     CheneyHeap::move_collectable(CheneyHeap::Collectable<T, Tn...> *from) {
         std::array<void*, utils::Count<T, Tn...>::count> temp{};
         auto to = reinterpret_cast<decltype(from)>(free);
+        copied.insert(to);
         ::new (to) Collectable<T, Tn...>();
         auto field = to->field = free = free + sizeof(Collectable<T, Tn...>);
         __move<T, Tn...>(from->fields, to->fields);
@@ -238,10 +281,26 @@ namespace data_structure {
 
         }
 
-        remote_ptr(remote_ptr&& that) noexcept : heap_pointer(std::forward<remote_ptr>(that))  {
+        remote_ptr(remote_ptr&& that) noexcept : heap_pointer(std::forward<remote_ptr>(that))  {}
 
+        remote_ptr(remote_ptr const & that) {
+            this->object = that.object;
+            this->next = that.next;
+            auto& m = const_cast<remote_ptr &>(that);
+            this->prev = &m;
+            m.next = this;
+            if(this->next) this->next->prev = this;
         }
 
+        remote_ptr& operator=(remote_ptr const& that) {
+            this->object = that.object;
+            this->next = that.next;
+            auto& m = const_cast<remote_ptr &>(that);
+            this->prev = &m;
+            m.next = this;
+            if(this->next) this->next->prev = this;
+            return *this;
+        }
 
         remote_ptr& operator=(Object* that) noexcept {
             this->object = that;
@@ -251,6 +310,40 @@ namespace data_structure {
             return *this;
         }
 
+        remote_ptr& operator=(nullptr_t) noexcept {
+            if (this->object && this->object->pointers == this) {
+                this->object->pointers = this->next;
+                if(this->object->pointers == nullptr && this->object->heap->roots.count(this->object)) {
+                    utils::destroy_at(this->object);
+                    this->object->heap->roots.erase(this->object);
+                    this->object->heap->active.erase(this->object);
+                }
+            }
+            this->object = nullptr;
+            if(this->next) this->next->prev = this->prev;
+            if(this->prev) this->prev->next = this->next;
+            this->next = this->prev = nullptr;
+            return *this;
+        }
+
+        bool operator==(nullptr_t) noexcept {
+            return this->object;
+        }
+
+        ~remote_ptr() {
+            if (this->object && this->object->pointers == this) {
+                this->object->pointers = this->next;
+                if(this->object->pointers == nullptr && this->object->heap->roots.count(this->object)) {
+                    utils::destroy_at(this->object);
+                    this->object->heap->roots.erase(this->object);
+                    this->object->heap->active.erase(this->object);
+                }
+            }
+            this->object = nullptr;
+            if(this->next) this->next->prev = this->prev;
+            if(this->prev) this->prev->next = this->next;
+            this->next = this->prev = nullptr;
+        }
 
         T& operator*() {
             if(std::is_base_of_v<Object, T>) {
@@ -266,6 +359,8 @@ namespace data_structure {
             return &operator*();
         }
 
+
+
     };
 
     template<typename T> constexpr std::size_t CheneyHeap::object_size() {
@@ -279,7 +374,15 @@ namespace data_structure {
 
     template<typename U, typename T, typename ...Tn, typename ...Args>
     CheneyHeap::Collectable<T, Tn...>* CheneyHeap::make_collectable(Args... args) {
+        auto p = free + collectable_size<T, Tn...>() - from;
+        if(free + collectable_size<T, Tn...>() - from > heap_size) {
+            garbage_collect();
+        }
+        if(free + collectable_size<T, Tn...>() - from > heap_size) {
+            grow(free + collectable_size<T, Tn...>() - from);
+        }
         auto ptr = reinterpret_cast<Collectable<T, Tn...> *>(free);
+        active.insert(ptr);
         std::array<void *, utils::Count<T, Tn...>::count> temp{};
         ::new (ptr) Collectable<T, Tn...>();
         ptr->heap = this;
@@ -292,6 +395,7 @@ namespace data_structure {
         for(size_t i = 0; i < utils::Count<T, Tn...>::count; ++i) {
             ptr->fields[i] = temp[i];
         }
+
         ptr->header = sizeof(U);
         ptr->size = collectable_size<T, Tn...>();
         ptr->field = field;
@@ -306,6 +410,7 @@ namespace data_structure {
             return heap->move_collectable(this);
         }
         friend CheneyHeap;
+
     private:
         void move_children() override {
             _move_children<0, T, Tn...>();
@@ -315,7 +420,7 @@ namespace data_structure {
         void _move_children() {
             if(U::is_ptr) {
                 auto c_ptr = reinterpret_cast<heap_pointer *>(fields[N]);
-                if(c_ptr->object) {
+                if(c_ptr->object && !heap->in_new_range(reinterpret_cast<char *>(c_ptr->object))) {
                     c_ptr->object->_move();
                 }
             }
@@ -325,6 +430,17 @@ namespace data_structure {
 
         template  <std::size_t>
         void _move_children(){; }
+
+
+        template <std::size_t N, typename U, typename ...Un>
+        void _self_destroy() {
+            auto c_ptr = reinterpret_cast<typename U::type *>(fields[N]);
+            utils::destroy_at(c_ptr);
+            _self_destroy<N + 1, Un...>();
+        }
+
+        template  <std::size_t>
+        void _self_destroy(){; }
 
         void show_children() override {
             _show_children<0, T, Tn...>();
@@ -356,7 +472,9 @@ namespace data_structure {
 
     public:
         Collectable() = default;
-
+        ~Collectable() override {
+            _self_destroy<0, T, Tn...>();
+        }
         template <size_t N>
         auto& get() {
             return *reinterpret_cast<typename utils::TypeHelper<N, T, Tn...>::type::type*>(fields[N]);
@@ -393,10 +511,12 @@ namespace data_structure {
     }
 
     void CheneyHeap::garbage_collect() {
+        copied.clear();
         auto scan = free = to;
         decltype(roots) new_roots{};
         for (Object* i: roots) {
-            new_roots.insert(i->_move());
+            auto ptr = i->_move();
+            new_roots.insert(ptr);
         }
         roots = std::move(new_roots);
         while(scan != free) {
@@ -406,10 +526,13 @@ namespace data_structure {
             scan = scan + t->size;
         }
         std::swap(from, to);
+        for(auto i: active) {
+            utils::destroy_at(i);
+        }
+        active = copied;
     }
 
     void CheneyHeap::wander(CheneyHeap::Object *t) {
-
             if(t) {
                 std::cout << "------------------------------\n";
                 std::cout << "address: " << t << std::endl;
@@ -457,6 +580,7 @@ namespace data_structure {
     void CheneyHeap::Collectable<T, Tn...>::construct_at(CheneyHeap::remote_ptr<U> &address, Args &&... args) {
         heap->construct_at(address, std::forward<Args>(args)...);
     }
+
 };
 
 #endif //DATA_STRUCTURE_FOR_LOVE_CHENEY_HEAP_HPP
