@@ -38,7 +38,7 @@ namespace data_structure {
         template <typename T> struct Local;
         template <typename T> struct Ptr;
         std::unordered_set<Object *> roots {};
-        explicit CheneyHeap(size_t heap_size = 20000) {
+        explicit CheneyHeap(size_t heap_size = 50000) {
             this->heap_size = heap_size;
             from = free = reinterpret_cast<char*>(::operator new(heap_size << 1));
             to = from + heap_size;
@@ -379,7 +379,7 @@ namespace data_structure {
             garbage_collect();
         }
         if(free + collectable_size<T, Tn...>() - from > heap_size) {
-            grow(free + collectable_size<T, Tn...>() - from);
+            grow(free + collectable_size<T, Tn...>() * utils::Count<T, Tn...>::count - from);
         }
         auto ptr = reinterpret_cast<Collectable<T, Tn...> *>(free);
         active.insert(ptr);
