@@ -23,6 +23,7 @@
 // detect real space. However, if your heap size if big enough, it is okay to use that.
 namespace data_structure {
     class CheneyHeap{
+    public:
         struct heap_pointer;
         struct Object;
         class SingleObjectBase;
@@ -38,7 +39,7 @@ namespace data_structure {
         template <typename T> struct Local;
         template <typename T> struct Ptr;
         std::unordered_set<Object *> roots {};
-        explicit CheneyHeap(size_t heap_size = 50000) {
+        explicit CheneyHeap(size_t heap_size = 5000000) {
             this->heap_size = heap_size;
             from = free = reinterpret_cast<char*>(::operator new(heap_size << 1));
             to = from + heap_size;
@@ -49,8 +50,8 @@ namespace data_structure {
         }
     private:
 
-        template <typename T, typename... Tn>
-        Collectable<T, Tn...>* move_collectable(Collectable<T, Tn...>* from);
+        template <typename U, typename T, typename... Tn>
+        Collectable<T, Tn...>* move_collectable(U* from);
         template<typename T, typename ...Args> SingleObject<T> *make_object(Args&& ...args);
         template<typename T> constexpr static std::size_t object_size();
         template<typename T, typename ...Tn> constexpr static std::size_t collectable_size();
@@ -211,19 +212,28 @@ namespace data_structure {
 
 
 
-    template<typename T, typename... Tn>
+    template<typename U, typename T, typename... Tn>
     CheneyHeap::Collectable<T, Tn...> *
-    CheneyHeap::move_collectable(CheneyHeap::Collectable<T, Tn...> *from) {
+    CheneyHeap::move_collectable(U *from) {
         std::array<void*, utils::Count<T, Tn...>::count> temp{};
         auto to = reinterpret_cast<decltype(from)>(free);
         copied.insert(to);
         ::new (to) Collectable<T, Tn...>();
         auto field = to->field = free = free + sizeof(Collectable<T, Tn...>);
         __move<T, Tn...>(from->fields, to->fields);
+        size_t k = 0;
+        for(auto i: to->fields) {
+            temp[k++] = i;
+        }
+        ::new (to) U(*from);
         auto t = from->pointers;
         while(t) {
             t->object = to;
             t= t->next;
+        }
+        k = 0;
+        for(auto i: temp) {
+            to->fields[k++] = i;
         }
         to->pointers = from->pointers;
         to->size = from->size;
@@ -407,7 +417,7 @@ namespace data_structure {
     class CheneyHeap::Collectable: private CollectableBase {
         std::array<void *, utils::Count<T, Tn...>::count> fields;
         Object* _move() override {
-            return heap->move_collectable(this);
+            return heap->move_collectable<std::decay_t<decltype(*this)>, T, Tn...>(this);
         }
         friend CheneyHeap;
 
@@ -506,7 +516,7 @@ namespace data_structure {
     template<class U, typename... Args>
     CheneyHeap::remote_ptr<U> CheneyHeap::Collectable<T, Tn...>::generate(CheneyHeap & heap, Args &&... args) {
         auto ptr = heap.make_collectable<U, T, Tn...>(std::forward<Args>(args)...);
-        heap.roots.insert(ptr);
+        heap.roots.insert(reinterpret_cast<U *>(ptr));
         return remote_ptr<U>(reinterpret_cast<U *>(ptr));
     }
 
