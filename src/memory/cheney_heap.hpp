@@ -91,19 +91,17 @@ namespace data_structure {
     struct CheneyHeap::Object{
         std::size_t size = 0, header = 0;
         void *field = nullptr;
-        CheneyHeap* heap;
+        CheneyHeap* heap; // no initialization
         heap_pointer *pointers = nullptr;
         virtual Object* _move() {throw "This should not be called"; };
-        template<typename T, typename... Args>
-        void construct_at(CheneyHeap::remote_ptr<T> &address, Args &&... args);
     };
 
     class CheneyHeap::SingleObjectBase: public Object {};
 
-    class CheneyHeap::CollectableBase: public Object {
-    public:
+    struct CheneyHeap::CollectableBase: public Object {
         virtual void move_children() {throw "This should not be called.\n";}
         virtual void show_children() {throw "This should not be called.\n";}
+        friend CheneyHeap;
     };
 
 
@@ -302,13 +300,13 @@ namespace data_structure {
     }
 
     template <typename T, typename ...Tn>
-    class CheneyHeap::Collectable: public CollectableBase {
-        public:
+    class CheneyHeap::Collectable: private CollectableBase {
         std::array<void *, utils::Count<T, Tn...>::count> fields;
         Object* _move() override {
             return heap->move_collectable(this);
         }
-    public:
+        friend CheneyHeap;
+    private:
         void move_children() override {
             _move_children<0, T, Tn...>();
         }
@@ -327,10 +325,6 @@ namespace data_structure {
 
         template  <std::size_t>
         void _move_children(){; }
-
-
-        template<class U, typename ...Args>
-        static remote_ptr<U> generate(CheneyHeap & heap, Args&& ...args);
 
         void show_children() override {
             _show_children<0, T, Tn...>();
@@ -369,7 +363,13 @@ namespace data_structure {
         }
 
         template <typename U, typename ...Args>
-        void construct_self_at(CheneyHeap::remote_ptr<U> &address, Args&&... args);
+        void construct_self_at(remote_ptr<U> &address, Args&&... args);
+
+        template<typename U, typename... Args>
+        void construct_at(remote_ptr<U> &address, Args &&... args);
+
+        template<class U, typename ...Args>
+        static remote_ptr<U> generate(CheneyHeap & heap, Args&& ...args);
     };
 
     template<typename T, typename... Args>
@@ -452,8 +452,9 @@ namespace data_structure {
 
     }
 
-    template<typename T, typename... Args>
-    void CheneyHeap::Object::construct_at(CheneyHeap::remote_ptr<T> &address, Args &&... args) {
+    template <typename T, typename ...Tn>
+    template<typename U, typename... Args>
+    void CheneyHeap::Collectable<T, Tn...>::construct_at(CheneyHeap::remote_ptr<U> &address, Args &&... args) {
         heap->construct_at(address, std::forward<Args>(args)...);
     }
 };

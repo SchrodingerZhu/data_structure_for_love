@@ -41,7 +41,6 @@ namespace data_structure {
         struct TypeHelper<0, T, Tn...>{
             using type = T;
         };
-
     }
 }
 
