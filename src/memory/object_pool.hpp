@@ -17,7 +17,7 @@
 #include <unordered_set>
 namespace data_structure {
     template<typename T, std::size_t ChunkSize = 1000,
-            typename PtrContainer = optimized_vector<T *>,
+            typename PtrContainer = std::vector<T *>,
             typename PtrHashCollection = std::unordered_set<T *>>
     class ObjectPool {
     private:
