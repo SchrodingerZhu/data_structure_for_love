@@ -27,20 +27,27 @@ namespace data_structure {
             std::cout << key << std::cout;
         }
     };
-    enum TreeDirection: unsigned char {
+    enum class TreeDirection: unsigned char {
         Left, Right, End
     };
+
     template<typename Info>
-    struct OrderWalker {
+    struct TreeWalker {
+        virtual void update(Info const &left_info, Info const &info, Info const &right_info, const TreeDirection& direction) = 0;
+        virtual Info result()  = 0;
+    };
+
+    template<typename Info>
+    struct OrderWalker: public TreeWalker<Info> {
         Info accumulator {};
-        void update(Info const &left_info, Info const &info, Info const &right_info, const TreeDirection& direction)  {
-            if (direction == Right) {
+        void update(Info const &left_info, Info const &info, Info const &right_info, const TreeDirection& direction) override {
+            if (direction == TreeDirection::Right) {
                 accumulator += info - right_info;
-            } else if (direction == End) {
+            } else if (direction == TreeDirection::End) {
                 accumulator += info - right_info - 1;
             }
         }
-        Info result() {
+        Info result() override {
             return accumulator;
         }
     };
@@ -55,18 +62,20 @@ namespace data_structure {
         BinaryTreeBaseNode(const Key &key, const Value &value, const Info &info) : key(key), value(value), info(info) {}
     };
 
+
     template<typename Key, typename Value = Nothing, typename Info = size_t, Info Void = 0,
             typename Compare = std::less<Key>,
             typename Calculator = WeightSumUp<Key, Value>,
             typename Node = BinaryTreeBaseNode<Key, Value, Info>>
     class BinaryTreeBase {
+    protected:
         constexpr static Compare compare{};
         constexpr static Calculator calculator{};
         ObjectPool<Node> node_pool{};
         Node *root{};
 
         Node *make_node(const Key &key, const Value &value, const Info &info = Void) {
-            auto m = node_pool.construct_raw(key, value, info);
+            auto m = this->node_pool.construct_raw(key, value, info);
             update_node(m);
             return m;
         }
@@ -77,12 +86,12 @@ namespace data_structure {
         }
 
         Node *find_node(const Key &key) const {
-            Node *p = root;
+            Node *p = this->root;
             while(p) {
                 if (key == p->key) {
                     break;
                 }
-                if (compare(key, p->key)) {
+                if (this->compare(key, p->key)) {
                     p = p->lChild;
                 } else {
                     p = p->rChild;
@@ -104,32 +113,48 @@ namespace data_structure {
             }
             return node;
         }
-
     public:
-        void insert(const Key &key, const Value &value = Value()) {
-            Node **p = &root, *f = nullptr;
+        virtual void insert(const Key& key, const Value &value) = 0;
+        virtual bool contains(const Key& key) const = 0;
+        virtual void erase(const Key &key)  = 0;
+        virtual Value& at(const Key& key) = 0;
+        virtual Value& operator[](const Key& key) noexcept = 0;
+        virtual Info& info_at(const Key& key) = 0;
+        virtual const Key& least_key() const = 0;
+        virtual const Key& most_key() const = 0;
+    };
+
+
+    template<typename Key, typename Value = Nothing, typename Info = size_t, Info Void = 0,
+            typename Compare = std::less<Key>,
+            typename Calculator = WeightSumUp<Key, Value>,
+            typename Node = BinaryTreeBaseNode<Key, Value, Info>>
+    class BasicBinaryTree: public BinaryTreeBase<Key, Value, Info, Void, Compare, Calculator, Node> {
+    public:
+        void insert(const Key &key, const Value &value = Value()) override {
+            Node **p = &this->root, *f = nullptr;
             while (*p) {
                 f = *p;
-                if (compare(key, (**p).key)) {
+                if (this->compare(key, (**p).key)) {
                     p = &(**p).lChild;
                 } else {
                     p = &(**p).rChild;
                 }
             }
-            *p = make_node(key, value);
+            *p = this->make_node(key, value);
             (*p)->father = f;
             while (f) {
-                update_node(f);
+                this->update_node(f);
                 f = f->father;
             }
         }
 
-        bool contains(const Key& key) const {
-            return find_node(key);
+        bool contains(const Key& key) const override {
+            return this->find_node(key);
         }
 
-        void erase(const Key &key) {
-            Node* p = find_node(key);
+        void erase(const Key &key) override {
+            Node* p = this->find_node(key);
             if (!p) return;
             else {
                 if(!p->rChild) {
@@ -141,11 +166,11 @@ namespace data_structure {
                             p->father->rChild = p->lChild;
                         }
                     }
-                    else root = p->lChild;
+                    else this->root = p->lChild;
                 }
                 else {
                     if (p->lChild) {
-                        auto least_right = least_node(p->rChild);
+                        auto least_right = this->least_node(p->rChild);
                         least_right->lChild = p->lChild;
                         p->lChild->father = least_right;
                     }
@@ -157,25 +182,25 @@ namespace data_structure {
                             p->father->rChild = p->rChild;;
                         }
                     }
-                    else root = p->rChild;
+                    else this->root = p->rChild;
                     auto m = p->lChild;
                     while(m != p->rChild) {
-                        update_node(m);
+                        this->update_node(m);
                         m = m->father;
                     }
-                    update_node(p->rChild);
+                    this->update_node(p->rChild);
                 }
                 auto m = p->father;
                 while(m){
-                    update_node(m);
+                    this->update_node(m);
                     m = m->father;
                 }
-                node_pool.recycle(p);
+                this->node_pool.recycle(p);
             }
         }
 
-        Value& at(const Key& key) {
-            Node* m = find_node(key);
+        Value& at(const Key& key) override {
+            Node* m = this->find_node(key);
             if(m) {
                 return m->value;
             } else {
@@ -183,12 +208,12 @@ namespace data_structure {
             }
         }
 
-        Value& operator[](const Key& key) noexcept {
-            Node* m = find_node(key); return m->value;
+        Value& operator[](const Key& key) noexcept override {
+            Node* m = this->find_node(key); return m->value;
         }
 
-        Info& info_at(const Key& key) {
-            Node* m = find_node(key);
+        Info& info_at(const Key& key) override {
+            Node* m = this->find_node(key);
             if(m) {
                 return m->info;
             } else {
@@ -196,38 +221,38 @@ namespace data_structure {
             }
         }
 
-        const Key& least_key() const {
-            if(!root) throw std::runtime_error("try to find least key in an empty tree");
-            Node* m = least_node(root);
+        const Key& least_key() const override {
+            if(!this->root) throw std::runtime_error("try to find least key in an empty tree");
+            Node* m = this->least_node(this->root);
             return m->key;
         }
 
-        const Key& most_key() const {
-            if(!root) throw std::runtime_error("try to find most key in an empty tree");
-            Node* m = most_node(root);
+        const Key& most_key() const override {
+            if(!this->root) throw std::runtime_error("try to find most key in an empty tree");
+            Node* m = this->most_node(this->root);
             return m->key;
         }
 
-        template <typename Walker>
+        template <template <class> typename Walker, typename = std::enable_if_t <std::is_base_of_v<TreeWalker<Info>, Walker<Info>>>>
         auto walk_to(const Key& key) {
-            Walker walker {};
-            Node *p = root;
+            Walker<Info> walker {};
+            Node *p = this->root;
             while (p) {
                 if (key == p->key) {
                     walker.update(
                             p->lChild ? p->lChild->info : Void,
-                            p->info, p->rChild ? p->rChild->info : Void, End);
+                            p->info, p->rChild ? p->rChild->info : Void, TreeDirection::End);
                     break;
                 }
-                else if (compare(key, p->key)) {
+                else if (this->compare(key, p->key)) {
                     walker.update(
                             p->lChild ? p->lChild->info : Void,
-                            p->info,p->rChild ? p->rChild->info : Void, Left);
+                            p->info,p->rChild ? p->rChild->info : Void, TreeDirection::Left);
                     p = p->lChild;
                 } else {
                     walker.update(
                             p->lChild ? p->lChild->info : Void,
-                            p->info,p->rChild ? p->rChild->info : Void, Right);
+                            p->info,p->rChild ? p->rChild->info : Void, TreeDirection::Right);
                     p = p->rChild;
                 }
             }
