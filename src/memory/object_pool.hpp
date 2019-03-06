@@ -20,8 +20,6 @@ namespace data_structure {
             typename PtrContainer = std::vector<T *>,
             typename PtrHashCollection = std::unordered_set<T *>>
     class ObjectPool {
-    private:
-        using Chunk = std::aligned_storage_t<ChunkSize * sizeof(T), alignof(T)>;
     public:
         using size_type = std::size_t;
         using differece_type = std::ptrdiff_t;
@@ -31,6 +29,26 @@ namespace data_structure {
 
         ObjectPool &operator=(ObjectPool const &that) = delete;
 
+        void absorb(ObjectPool& that) {
+            while(current_address != chunk_end) {
+                recycle_list.push_back(current_address++);
+            }
+            for(auto i: that.recycle_list) {
+                recycle_list.push_back(i);
+            }
+            for(auto i: that.pool) {
+                pool.push_back(i);
+            }
+            for(auto i: that.active) {
+                active.insert(i);
+            }
+            current_address = that.current_address;
+            chunk_end = that.chunk_end;
+            that.chunk_end = that.current_address = nullptr;
+            that.active.clear();
+            that.pool.clear();
+            that.recycle_list.clear();
+        }
         ObjectPool(ObjectPool &&that) noexcept {
             chunk_end = that.chunk_end;
             current_address = that.current_address;
