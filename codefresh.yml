@@ -13,7 +13,7 @@ steps:
         COPY . /usr/src/myapp
         WORKDIR /usr/src/myapp
 
-        RUN apt-get -y update && apt-get -y install build-essential cmake lcov wget
+        RUN apt-get -y update && apt-get -y install build-essential cmake lcov wget curl
 
         RUN mkdir TEST
         RUN wget https://codecov.io/bash -O cov.sh && chmod +x cov.sh
