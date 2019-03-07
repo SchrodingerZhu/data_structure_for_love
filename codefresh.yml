@@ -1,0 +1,30 @@
+version: '1.0'
+steps:
+  BuildingDockerImage:
+    title: Building Docker Image
+    type: build
+    image_name: schrodingerzhu/datastructureforlove
+    working_directory: ./
+    tag: '${{CF_BRANCH_TAG_NORMALIZED}}'
+    dockerfile:
+      content: |-
+        FROM ubuntu:devel
+
+        COPY . /usr/src/myapp
+        WORKDIR /usr/src/myapp
+
+        RUN apt-get -y update && apt-get -y install build-essential cmake lcov wget
+
+        RUN mkdir TEST
+        RUN wget https://codecov.io/bash -O cov.sh && chmod +x cov.sh
+        
+  UnitTest:
+    title: Running Unit Test
+    image: ${{BuildingDockerImage}}
+    commands:
+      - cd /usr/src/myapp/TEST && cmake .. && make && make test
+      - cd /usr/src/myapp
+      - lcov --capture --directory . --output-file coverage.info
+      - lcov --remove coverage.info '/usr/*' --output-file coverage.info
+      - lcov --list coverage.info
+      - ./cov.sh -f coverage.info -t 7da9561d-56fa-4bf9-b6b1-160342e51181
