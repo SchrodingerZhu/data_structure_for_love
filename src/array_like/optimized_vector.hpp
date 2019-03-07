@@ -314,5 +314,4 @@ namespace data_structure {
 
 }
 
-
-//#endif //DATA_STRUCTURE_FOR_LOVE_OPTIMIZED_VECTOR_HPP
+#endif //DATA_STRUCTURE_FOR_LOVE_OPTIMIZED_VECTOR_HPP
