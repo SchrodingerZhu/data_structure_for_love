@@ -76,6 +76,16 @@ namespace data_structure {
             return active.insert(current_address), current_address++;
         }
 
+        [[nodiscard]] T *allocate(size_type t) {
+            if (t < chunk_end - current_address)  {
+                current_address += t;
+                return current_address - t;
+            } else {
+                pool.push_back(reinterpret_cast<T *>(::operator new(sizeof(T) * t)));
+                return pool.back();
+            }
+        }
+    
         template <typename ...Args>
         [[nodiscard]] T *construct_raw(Args&& ...args) {
             T* address = get_raw();
@@ -83,12 +93,18 @@ namespace data_structure {
             return address;
         };
 
+        template <typename ...Args>
+        void construct(T *p, Args&& ...args)
+        {return utils::emplace_construct(p, std::forward<Args>(args)...);}
+
         inline void recycle(T* address) {
             utils::destroy_at(address);
             std::memset(address, 0, sizeof(T));
             active.erase(address);
             recycle_list.push_back(address);
         }
+
+        inline void destroy(T * address) {recycle(address); }
 
         std::shared_ptr<T> get_shared() {
             return {get_raw(), [u = this] (T* t) {u->recycle(t);}};
