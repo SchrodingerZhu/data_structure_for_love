@@ -328,20 +328,22 @@ namespace data_structure {
         void sort() {
 
         }
-        void __sort(iterator a, iterator b) {
+        void __sort(iterator& a, iterator& b) {
+            // must update
             if(a == b || a + 1 == b) return;
             else {
-                auto mid = a + ((a - b) >> 1);
-                __sort(a, mid);
-                __sort(mid, b);
-                while(a < mid && mid != b) {
-                    while(a < mid && *a < *mid) ++a;
-                    auto old = mid;
-                    while(mid.now != b && *mid < *a) ++mid;
-                    a.order += mid - old;
-                    mid.order += mid - old;
-                    if(a.prev) {
-                        a.prev->link = combine(combine(a.prev->link, a.now), old.now);
+                auto i = a, end = b;
+                auto j = i + ((end - i) >> 1);
+                __sort(i, j);
+                __sort(j, end);
+                while(i < j && j != end) {
+                    while(i < j && *i < *j) ++i;
+                    auto old = j;
+                    while(j != end && *j < *i) ++j;
+                    a.order += j - old;
+                    b.order += j - old;
+                    if(i.prev) {
+                        i.prev->link = combine(combine(i.prev->link, i.now), old.now);
                     }
                     else head = old.now;
                 }

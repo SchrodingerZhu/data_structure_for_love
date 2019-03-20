@@ -5,7 +5,7 @@
 #include <algorithm>
 #include <xor_list.hpp>
 #include <iostream>
-
+#include <list>
 int main () {
     using namespace data_structure;
     XorList<std::string> test;
@@ -22,11 +22,22 @@ int main () {
     }
 
     std::cout << *i << std::endl;
-    std::sort(test.begin(), test.end());
+
     for (const auto& j : test) {
         std::cout << j << std::endl;
     }
     test.pop_back();
-    //test.view();
+    //XorList<long long> test2;
+    std::list<long long> test2;
+    for(long long p = 0; p <= 50000; ++p) {
+        test2.push_back(rand());
+    }
+    //test2.view();
+    std::cout << std::endl;
+    test2.sort();
+    //std::sort(test2.begin(), test2.end());
+    //std::__sort(test.begin(), test.end(), std::less<long long>());
+    //test2.view();
+    //test2.view();
 }
 #undef DEBUG
