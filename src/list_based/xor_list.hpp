@@ -24,57 +24,60 @@ namespace data_structure {
     public:
         using value_type = typename XorList::value_type;
         using difference_type = typename XorList::difference_type;
+        using iterator_category = std::random_access_iterator_tag;
+        using pointer = typename XorList::value_type *;
+        using reference = typename XorList::value_type &;
     private:
         XorNode<value_type> *now, *prev;
         difference_type order {};
     public:
-        xor_list_iterator(XorNode<value_type>* prev, XorNode<value_type>* now): now(now), prev(prev) {}
-        xor_list_iterator &operator++() {
+        xor_list_iterator(XorNode<value_type>* prev, XorNode<value_type>* now) noexcept : now(now), prev(prev)  {}
+        xor_list_iterator &operator++() noexcept {
             ++order;
             auto temp = prev;
             prev = now;
             now = XorList::combine(temp, now->link);
             return *this;
         }
-        const xor_list_iterator operator++(int) {
+        const xor_list_iterator operator++(int) noexcept {
             ++order;
             auto temp = prev;
             prev = now;
             now = XorList::combine(temp, now->link);
             return *this;
         }
-        const xor_list_iterator operator--(int) {
+        const xor_list_iterator operator--(int) noexcept {
             order--;
             auto temp = now;
             now = prev;
             prev = XorList::combine(temp, now->link);
             return *this;
         }
-        xor_list_iterator& operator--() {
+        xor_list_iterator& operator--() noexcept {
             order--;
             auto temp = now;
             now = prev;
             prev = XorList::combine(temp, now->link);
             return *this;
         }
-        bool operator==(const xor_list_iterator &that) {
+        bool operator==(const xor_list_iterator &that) noexcept {
             return this->now == that.now;
         }
 
-        bool operator!=(const xor_list_iterator &that) {
+        bool operator!=(const xor_list_iterator &that) noexcept {
             return this->now != that.now;
         }
         value_type &operator*() {
             return now->value;
         }
-        std::ostream &operator<<(std::ostream& out) const {
+        std::ostream &operator<<(std::ostream& out) const noexcept {
             return out << now;
         }
-        difference_type operator-(const xor_list_iterator& that) {
+        difference_type operator-(const xor_list_iterator& that) const noexcept {
             return order - that.order;
         }
         template <class NUM, typename = std::enable_if_t<std::is_integral_v<NUM>>>
-        xor_list_iterator operator+(NUM number) const {
+        xor_list_iterator operator+(NUM number) const noexcept {
             auto iter {*this};
             while(number--){
                 ++iter.order;
@@ -84,8 +87,19 @@ namespace data_structure {
             }
             return iter;
         }
+
         template <class NUM, typename = std::enable_if_t<std::is_integral_v<NUM>>>
-        xor_list_iterator operator-(NUM number) const {
+        xor_list_iterator operator+=(NUM number) noexcept {
+            while(number--){
+                ++order;
+                auto temp = prev;
+                prev = now;
+                now = XorList::combine(temp, now->link);
+            }
+            return *this;
+        }
+        template <class NUM, typename = std::enable_if_t<std::is_integral_v<NUM>>>
+        xor_list_iterator operator-(NUM number) const noexcept  {
             auto iter {*this};
             while(number--){
                 iter.order--;
@@ -95,9 +109,10 @@ namespace data_structure {
             }
             return iter;
         }
-        bool operator<(const xor_list_iterator& that) const {
+        bool operator<(const xor_list_iterator& that) const noexcept {
             return order < that.order;
         }
+        friend XorList;
     };
 
 
@@ -310,17 +325,34 @@ namespace data_structure {
                 return false;
             findTarget(combine(now->link, last), now, target);
         }
+        void sort() {
+
+        }
+        void __sort(iterator a, iterator b) {
+            if(a == b || a + 1 == b) return;
+            else {
+                auto mid = a + ((a - b) >> 1);
+                __sort(a, mid);
+                __sort(mid, b);
+                while(a < mid && mid != b) {
+                    while(a < mid && *a < *mid) ++a;
+                    auto old = mid;
+                    while(mid.now != b && *mid < *a) ++mid;
+                    a.order += mid - old;
+                    mid.order += mid - old;
+                    if(a.prev) {
+                        a.prev->link = combine(combine(a.prev->link, a.now), old.now);
+                    }
+                    else head = old.now;
+                }
+            }
+        }
         friend iterator;
     };
 
 }
 
 namespace std {
-    template <class T>
-    struct iterator_traits<data_structure::xor_list_iterator<data_structure::XorList<T>>> {
-        using value_type = T;
-        using difference_type = std::ptrdiff_t;
-        using iterator_category = std::random_access_iterator_tag;
-    };
+
 }
 #endif //DATA_STRUCTURE_FOR_LOVE_XOR_LIST
