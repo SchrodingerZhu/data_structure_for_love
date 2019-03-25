@@ -31,7 +31,7 @@ namespace data_structure {
         XorNode<value_type> *now, *prev;
         difference_type order {};
     public:
-        xor_list_iterator(XorNode<value_type>* prev, XorNode<value_type>* now) noexcept : now(now), prev(prev)  {}
+        xor_list_iterator(XorNode<value_type>* prev, XorNode<value_type>* now, difference_type order=0) noexcept : now(now), prev(prev), order(order)  {}
         xor_list_iterator &operator++() noexcept {
             ++order;
             auto temp = prev;
@@ -115,6 +115,58 @@ namespace data_structure {
         friend XorList;
     };
 
+    /// @todo: will be finished later
+    template <typename XorList>
+    class xor_reverse_iterator {
+    public:
+        using value_type = typename XorList::value_type;
+        using difference_type = typename XorList::difference_type;
+        using iterator_category = std::random_access_iterator_tag;
+        using pointer = typename XorList::value_type *;
+        using reference = typename XorList::value_type &;
+    private:
+        XorNode<value_type> *now, *next;
+    public:
+        xor_reverse_iterator(XorNode<value_type> *now, XorNode<value_type>* next): now(now), next(next) {}
+        xor_reverse_iterator &operator++() {
+            auto temp = next;
+            next = now;
+            now = combine(temp, now->link);
+            return *this;
+        }
+        const xor_reverse_iterator operator++(int) {
+            auto temp = next;
+            next = now;
+            now = combine(temp, now->link);
+            return *this;
+        }
+        const xor_reverse_iterator operator--(int) {
+            auto temp = now;
+            now = next;
+            next = combine(temp, now->link);
+            return *this;
+        }
+        xor_reverse_iterator& operator--() {
+            auto temp = now;
+            now = next;
+            next = XorList::combine(temp, now->link);
+            return *this;
+        }
+        bool operator==(const xor_reverse_iterator &that) {
+            return this->now == that.now;
+        }
+
+        bool operator!=(const xor_reverse_iterator &that) {
+            return this->now != that.now;
+        }
+        value_type &operator*() {
+            return now->value;
+        }
+        std::ostream &operator<<(std::ostream& out) const {
+            return out << now;
+        }
+    };
+
 
 
     template <class T, class Alloc = std::allocator<XorNode<T>>>
@@ -133,51 +185,7 @@ namespace data_structure {
         using reference = T &;
         using pointer = T *;
         using iterator = xor_list_iterator<XorList>;
-
-
-        class reverse_iterator {
-            XorNode<value_type> *now, *next;
-        public:
-            reverse_iterator(XorNode<value_type> *now, XorNode<value_type>* next): now(now), next(next) {}
-            reverse_iterator &operator++() {
-                auto temp = next;
-                next = now;
-                now = combine(temp, now->link);
-                return *this;
-            }
-            const reverse_iterator operator++(int) {
-                auto temp = next;
-                next = now;
-                now = combine(temp, now->link);
-                return *this;
-            }
-            const reverse_iterator operator--(int) {
-                auto temp = now;
-                now = next;
-                next = combine(temp, now->link);
-                return *this;
-            }
-            reverse_iterator& operator--() {
-                auto temp = now;
-                now = next;
-                next = combine(temp, now->link);
-                return *this;
-            }
-            bool operator==(const reverse_iterator &that) {
-                return this->now == that.now;
-            }
-
-            bool operator!=(const reverse_iterator &that) {
-                return this->now != that.now;
-            }
-            value_type &operator*() {
-                return now->value;
-            }
-            std::ostream &operator<<(std::ostream& out) const {
-                return out << now;
-            }
-        };
-
+        using reverse_iterator = xor_reverse_iterator<XorList>;
         using const_iterator = const iterator;
 
         iterator begin() {
@@ -185,7 +193,7 @@ namespace data_structure {
         }
 
         iterator end() {
-            return {tail, nullptr};
+            return {tail, nullptr, size()};
         }
 
         const iterator begin() const {
@@ -193,7 +201,7 @@ namespace data_structure {
         }
 
         const iterator end() const {
-            return {tail, nullptr};
+            return {tail, nullptr, size()};
         }
 
         const iterator cbegin() const {
@@ -325,31 +333,105 @@ namespace data_structure {
                 return false;
             findTarget(combine(now->link, last), now, target);
         }
+        std::unordered_set<XorNode<T>*> ptrs {};
         void sort() {
-
+            auto a = begin(), b = end();
+            auto i = a, j = b;
+            for(;i<j;++i) {
+                ptrs.insert(i.now);
+            }
+            __sort(a, b);
         }
+
         void __sort(iterator& a, iterator& b) {
             // must update
-            if(a == b || a + 1 == b) return;
+            auto m = a, n = b;
+            std::cout << "sorting[ ";
+            while(m != n) {
+                std::cout << *m << " ";
+                m++;
+            }
+            std::cout << "]" << std::endl;
+            m = a, n = b;
+            std::cout << "address[ ";
+            while(m != n) {
+                std::cout << m.now << " ";
+                m++;
+            }
+            std::cout << "]" << std::endl;
+            if(a == b || a.order + 1 == b.order) return;
             else {
                 auto i = a, end = b;
                 auto j = i + ((end - i) >> 1);
                 __sort(i, j);
                 __sort(j, end);
+                auto s = i, t = j;
+                std::cout << "merging{[ ";
+                while(s != t) {
+                    std::cout << *s << " ";
+                    s++;
+                }
+                std::cout << "], [ ";
+                t=end; s = j;
+                while(s != t) {
+                    std::cout << *s << " ";
+                    s++;
+                }
+                std::cout << "]}" << std::endl;
+                s = i, t = j;
+                std::cout << "address{[ ";
+                while(s != t) {
+                    std::cout << s.now << " ";
+                    s++;
+                }
+                std::cout << "], [ ";
+                t=end; s = j;
+                while(s != t) {
+                    std::cout << s.now << " ";
+                    s++;
+                }
+                std::cout << "]}" << std::endl;
                 while(i < j && j != end) {
-                    while(i < j && *i < *j) ++i;
+                    while(i < j && *i < *j) {
+                        ++i;
+                        assert(ptrs.count(i.now));
+                    }
                     auto old = j;
                     while(j != end && *j < *i) ++j;
-                    a.order += j - old;
-                    b.order += j - old;
                     if(i.prev) {
-                        i.prev->link = combine(combine(i.prev->link, i.now), old.now);
+                        i.prev->link = combine(combine(i.prev->link, i.now), old.now); // 10 - 20
                     }
                     else head = old.now;
+                    i.now->link = combine(combine(i.prev, i.now->link), j.prev); // 30-25
+                    if(j.now) {
+                        j.now->link = combine(combine(j.now->link, j.prev), old.prev); // 55-80
+                    }
+                    else tail = old.prev;
+                    old.prev->link = combine(combine(old.prev->link, old.now), j.now); //80-55
+                    old.now->link = combine(combine(old.now->link, old.prev), i.prev); // 20 - 10
+                    j.prev->link = combine(combine(j.prev->link, j.now), i.now); // 25-30
+                    if (i.now == a.now) {
+                        a.now = old.now;
+                        a.prev = i.prev;
+                    }
+                    if(j.now  == b.now) {
+                        b.prev = old.prev;
+                    }
+
                 }
+                //assert(j.now == b.now);
+                m = a, n = b;
+                std::cout << "after merging[ ";
+                while(m != n) {
+                    std::cout << *m << " ";
+                    std::cout.flush();
+                    m++;
+                }
+                std::cout << "]" << std::endl;
             }
         }
         friend iterator;
+        friend reverse_iterator;
     };
 
 }

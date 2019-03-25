@@ -1,6 +1,11 @@
 //
 // Created by schrodinger on 3/18/19.
 //
+// 安得万能杀虫剂
+// 灭遍BUG心不累
+// 归并排序未成型
+// 求助天神DEBUG
+/// @attention 组员们，看你们的了！
 #define DEBUG
 #include <algorithm>
 #include <xor_list.hpp>
@@ -28,16 +33,21 @@ int main () {
     }
     test.pop_back();
     //XorList<long long> test2;
-    std::list<long long> test2;
-    for(long long p = 0; p <= 50000; ++p) {
+    XorList<long long> test2;
+    for(long long p = 0; p <= 4; ++p) {
         test2.push_back(rand());
     }
-    //test2.view();
+    for (const auto& j : test2) {
+        std::cout << j << std::endl;
+    }
     std::cout << std::endl;
-    test2.sort();
+    //test2.sort();
+
     //std::sort(test2.begin(), test2.end());
     //std::__sort(test.begin(), test.end(), std::less<long long>());
-    //test2.view();
+    for (const auto& j : test2) {
+        std::cout << j << std::endl;
+    }
     //test2.view();
 }
 #undef DEBUG
