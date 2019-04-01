@@ -17,11 +17,9 @@
 #include <unordered_set>
 namespace data_structure {
     template<typename T, std::size_t ChunkSize = 1000,
-            typename PtrContainer = optimized_vector<T *>,
+            typename PtrContainer = std::vector<T *>,
             typename PtrHashCollection = std::unordered_set<T *>>
     class ObjectPool {
-    private:
-        using Chunk = std::aligned_storage_t<ChunkSize * sizeof(T), alignof(T)>;
     public:
         using size_type = std::size_t;
         using differece_type = std::ptrdiff_t;
@@ -31,6 +29,26 @@ namespace data_structure {
 
         ObjectPool &operator=(ObjectPool const &that) = delete;
 
+        void absorb(ObjectPool& that) {
+            while(current_address != chunk_end) {
+                recycle_list.push_back(current_address++);
+            }
+            for(auto i: that.recycle_list) {
+                recycle_list.push_back(i);
+            }
+            for(auto i: that.pool) {
+                pool.push_back(i);
+            }
+            for(auto i: that.active) {
+                active.insert(i);
+            }
+            current_address = that.current_address;
+            chunk_end = that.chunk_end;
+            that.chunk_end = that.current_address = nullptr;
+            that.active.clear();
+            that.pool.clear();
+            that.recycle_list.clear();
+        }
         ObjectPool(ObjectPool &&that) noexcept {
             chunk_end = that.chunk_end;
             current_address = that.current_address;
@@ -58,6 +76,16 @@ namespace data_structure {
             return active.insert(current_address), current_address++;
         }
 
+        [[nodiscard]] T *allocate(size_type t) {
+            if (t < chunk_end - current_address)  {
+                current_address += t;
+                return current_address - t;
+            } else {
+                pool.push_back(reinterpret_cast<T *>(::operator new(sizeof(T) * t)));
+                return pool.back();
+            }
+        }
+    
         template <typename ...Args>
         [[nodiscard]] T *construct_raw(Args&& ...args) {
             T* address = get_raw();
@@ -65,12 +93,18 @@ namespace data_structure {
             return address;
         };
 
+        template <typename ...Args>
+        void construct(T *p, Args&& ...args)
+        {return utils::emplace_construct(p, std::forward<Args>(args)...);}
+
         inline void recycle(T* address) {
             utils::destroy_at(address);
             std::memset(address, 0, sizeof(T));
             active.erase(address);
             recycle_list.push_back(address);
         }
+
+        inline void destroy(T * address) {recycle(address); }
 
         std::shared_ptr<T> get_shared() {
             return {get_raw(), [u = this] (T* t) {u->recycle(t);}};

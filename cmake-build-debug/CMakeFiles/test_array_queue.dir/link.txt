@@ -1,1 +1,0 @@
-/run/current-system/sw/bin/c++  -g   CMakeFiles/test_array_queue.dir/misc/test/test_array_queue.cpp.o  -o test_array_queue 
