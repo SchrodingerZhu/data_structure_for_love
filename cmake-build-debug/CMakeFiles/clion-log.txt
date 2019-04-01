@@ -1,0 +1,4 @@
+/nix/store/j3v4qi89liwahkjm9qp95pgcjgs3haxm-clion-2018.3.4/clion-2018.3.4/bin/cmake/linux/bin/cmake -DCMAKE_BUILD_TYPE=Debug -G "CodeBlocks - Unix Makefiles" /home/schrodinger/CLionProjects/data_structure_for_love
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/schrodinger/CLionProjects/data_structure_for_love/cmake-build-debug

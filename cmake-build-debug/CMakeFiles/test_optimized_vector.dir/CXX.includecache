@@ -1,0 +1,42 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+../src/array_like/optimized_vector.hpp
+cstddef
+-
+cstring
+-
+memory
+-
+object_management.hpp
+-
+cassert
+-
+iostream
+-
+
+../utils/object_management.hpp
+utility
+-
+
+/home/schrodinger/CLionProjects/data_structure_for_love/misc/test/test_optimized_vector.cpp
+optimized_vector.hpp
+-
+cassert
+-
+vector
+-
+iostream
+-
+random
+-
+limits
+-
+chrono
+-
+

@@ -1,0 +1,1 @@
+/run/current-system/sw/bin/c++  -g   CMakeFiles/test_binary_heap.dir/misc/test/test_binary_heap.cpp.o  -o test_binary_heap 

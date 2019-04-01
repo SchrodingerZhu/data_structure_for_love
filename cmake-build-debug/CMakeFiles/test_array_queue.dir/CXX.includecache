@@ -1,0 +1,38 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+../src/array_like/array_queue.hpp
+optimized_vector.hpp
+-
+vector
+-
+
+../src/array_like/optimized_vector.hpp
+cstddef
+-
+cstring
+-
+memory
+-
+object_management.hpp
+-
+cassert
+-
+iostream
+-
+
+../utils/object_management.hpp
+utility
+-
+
+/home/schrodinger/CLionProjects/data_structure_for_love/misc/test/test_array_queue.cpp
+iostream
+-
+array_queue.hpp
+-
+

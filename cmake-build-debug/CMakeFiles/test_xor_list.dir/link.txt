@@ -1,0 +1,1 @@
+/run/current-system/sw/bin/c++  -g   CMakeFiles/test_xor_list.dir/misc/test/test_xor_list.cpp.o  -o test_xor_list -lgcov 
