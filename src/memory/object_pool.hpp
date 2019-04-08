@@ -77,6 +77,9 @@ namespace data_structure {
         }
 
         [[nodiscard]] T *allocate(size_type t) {
+            if(chunk_end == current_address && t <= ChunkSize) {
+                alloc_chunk();
+            }
             if (t < chunk_end - current_address)  {
                 current_address += t;
                 return current_address - t;
