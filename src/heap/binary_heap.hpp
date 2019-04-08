@@ -87,16 +87,23 @@ namespace data_structure {
                         if(!old->father) root = old;
                     }
                 }
+#ifdef DEBUG
                 void debug(BinaryHeapNode<T>* m, const std::string& t = "    ") {
                     if (m) {
-                        std::cout << t  << "value: " << m->value <<", size: " << m->size << std::endl;
-                        debug(m->left, t + t);
-                        debug(m->right, t + t);
+                        std::cout << t  << "value: " << m->value <<", size: " << m->size ;
+
+                        if(m->father) std::cout << ", father: "<< m->father->value << std::endl;
+                        else std::cout << std::endl;
+                        debug(m->left, "    " + t);
+                        debug(m->right, "    " + t);
                     }
                 }
+
+
                 void debug() {
                     debug(root);
                 }
+#endif //DEBUG
                 template <typename ...Args>
                 void emplace(Args&& ...args) {
                     BinaryHeapNode<T> **ptr = &root, *old = nullptr;
@@ -164,29 +171,23 @@ namespace data_structure {
                     if(!root) return;
                     auto p = root;
                     while (p->left || p->right) {
-                        if(!p->left || p->left->value > p->right->value) {
-                            if(p->father) {
-                                if(p == p->father->left) p->father->left = p->right;
-                                else p->father->right = p->right;
-                            } else {
-                                root = p->right;
-                            }
-                            p->right->father = p->father;
-                            if(p->left) p->left->father = p->right;
-                            p->left = p->right->left;
-                            p->father = p->right;
-                            p->right = p->father->right;
-                            p->father->right = p;
+                        p->size--;
+                        if (!p->left || (p->right && p->left->value > p->right->value)) {
+                            std::swap(p->value, p->right->value);
+                            p = p->right;
                         } else {
-                            if(p->father) {
-                                if(p == p->father->left) p->father->left = p->right;
-                                else p->father->right = p->right;
-                            } else {
-                                root = p->left;
-                            }
+                            std::swap(p->value, p->left->value);
+                            p = p->left;
                         }
                     }
-
+                    if(p->father) {
+                        if(p == p->father->left) p->father->left = nullptr;
+                        else p->father->right = nullptr;
+                    } else {
+                        root = nullptr;
+                    }
+                    this->alloc.destroy(p);
+                    this->alloc.deallocate(p, 1);
                 }
             };
 }

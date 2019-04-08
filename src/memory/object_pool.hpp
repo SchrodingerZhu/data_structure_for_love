@@ -17,8 +17,7 @@
 #include <unordered_set>
 namespace data_structure {
     template<typename T, std::size_t ChunkSize = 1000,
-            typename PtrContainer = std::vector<T *>,
-            typename PtrHashCollection = std::unordered_set<T *>>
+            typename PtrContainer = std::vector<T *>>
     class ObjectPool {
     public:
         using size_type = std::size_t;
@@ -39,13 +38,9 @@ namespace data_structure {
             for(auto i: that.pool) {
                 pool.push_back(i);
             }
-            for(auto i: that.active) {
-                active.insert(i);
-            }
             current_address = that.current_address;
             chunk_end = that.chunk_end;
             that.chunk_end = that.current_address = nullptr;
-            that.active.clear();
             that.pool.clear();
             that.recycle_list.clear();
         }
@@ -69,11 +64,10 @@ namespace data_structure {
             if (!recycle_list.empty()) {
                 T *res = recycle_list.back();
                 recycle_list.pop_back();
-                active.insert(res);
                 return res;
             }
             if (chunk_end == current_address) alloc_chunk();
-            return active.insert(current_address), current_address++;
+            return current_address++;
         }
 
         [[nodiscard]] T *allocate(size_type t) {
@@ -101,14 +95,12 @@ namespace data_structure {
         {return utils::emplace_construct(p, std::forward<Args>(args)...);}
 
         inline void recycle(T* address) {
-            utils::destroy_at(address);
             std::memset(address, 0, sizeof(T));
-            active.erase(address);
             recycle_list.push_back(address);
         }
 
-        inline void destroy(T * address) {recycle(address); }
-
+        inline void destroy(T * address) { utils::destroy_at(address); }
+        inline void deallocate(T * address, size_type n) {while(n--) recycle(address++); }
         std::shared_ptr<T> get_shared() {
             return {get_raw(), [u = this] (T* t) {u->recycle(t);}};
         }
@@ -120,9 +112,6 @@ namespace data_structure {
         };
 
         ~ObjectPool() {
-            for(auto i: active) {
-                utils::destroy_at(i);
-            }
             for(auto i : pool) {
                 ::operator delete(reinterpret_cast<void *>(i), sizeof(T) * ChunkSize);
             }
@@ -131,7 +120,6 @@ namespace data_structure {
         T *chunk_end = nullptr, *current_address = nullptr;
         PtrContainer pool{};
         PtrContainer recycle_list {};
-        PtrHashCollection active {};
         void alloc_chunk() {
             pool.push_back(reinterpret_cast<T *>(::operator new(sizeof(T) * ChunkSize)));
             chunk_end = current_address = pool.back();
