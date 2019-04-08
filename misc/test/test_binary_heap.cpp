@@ -16,7 +16,7 @@ inline auto random_string() {
 }
 int main() {
     using namespace data_structure;
-    BinaryHeap<int, std::less<>, ObjectPool<BinaryHeapNode<int>>> bHeap_one {};
+    BinaryHeap<int, std::greater<>> bHeap_one{};
     BinaryHeap<std::string> bHeap_two {};
     auto n = 114514;
     std::vector<int> test_one, res_one;
@@ -28,7 +28,7 @@ int main() {
         res_one.emplace_back(bHeap_one.top());
         bHeap_one.pop();
     }
-    std::sort(test_one.begin(), test_one.end());
+    std::sort(test_one.begin(), test_one.end(), std::greater<int>{});
     assert(test_one == res_one);
     n = 5261;
     std::vector<std::string> test_two, res_two;

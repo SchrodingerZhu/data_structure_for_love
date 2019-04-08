@@ -44,7 +44,7 @@ namespace data_structure {
                     (*ptr)->father = old;
                     old = *ptr;
                     old->size = 1;
-                    while(old->father && old->value < old->father->value) {
+                    while (old->father && compare(old->value, old->father->value)) {
                         std::swap(old->father->size, old->size);
                         if(old->father->father) {
                             if(old->father->father->left == old->father) {
@@ -121,7 +121,7 @@ namespace data_structure {
                     (*ptr)->father = old;
                     old = *ptr;
                     old->size = 1;
-                    while(old->father && old->value < old->father->value) {
+                    while (old->father && compare(old->value, old->father->value)) {
                         std::swap(old->father->size, old->size);
                         if(old->father->father) {
                             if(old->father->father->left == old->father) {
@@ -172,7 +172,7 @@ namespace data_structure {
                     auto p = root;
                     while (p->left || p->right) {
                         p->size--;
-                        if (!p->left || (p->right && p->left->value > p->right->value)) {
+                        if (!p->left || (p->right && !compare(p->left->value, p->right->value))) {
                             std::swap(p->value, p->right->value);
                             p = p->right;
                         } else {
