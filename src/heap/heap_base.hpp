@@ -11,7 +11,7 @@ namespace data_structure {
     class Heap {
 
         virtual const T &top() = 0;
-        virtual void push() = 0;
+        virtual void push(const T& t) = 0;
         virtual size_t size() = 0;
         virtual void pop() = 0;
     };

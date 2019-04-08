@@ -337,6 +337,7 @@ namespace data_structure {
             else {
                 auto prev = combine(tail->link, nullptr);
                 memory_pool.destroy(tail);
+                memory_pool.deallocate(tail, 1);
                 if (prev) prev->link = combine(combine(prev->link, tail), nullptr);
                 tail = prev;
                 _size--;
