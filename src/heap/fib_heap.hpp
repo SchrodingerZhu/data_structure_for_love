@@ -1,0 +1,8 @@
+//
+// Created by schrodinger on 19-4-10.
+//
+
+#ifndef DATA_STRUCTURE_FOR_LOVE_FIB_HEAP_HPP
+#define DATA_STRUCTURE_FOR_LOVE_FIB_HEAP_HPP
+
+#endif //DATA_STRUCTURE_FOR_LOVE_FIB_HEAP_HPP
