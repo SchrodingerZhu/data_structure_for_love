@@ -11,13 +11,10 @@ namespace data_structure {
     class Heap {
         virtual const T &top() = 0;
         virtual void push(const T& t) = 0;
-        virtual size_t size() = 0;
+
+        virtual size_t size() const = 0;
         virtual void pop() = 0;
     };
 
-    template<typename T, typename Compare = std::less<T>>
-    class MergeHeap : public Heap<T, Compare> {
-        virtual void merge() = 0;
-    };
 }
 #endif //DATA_STRUCTURE_FOR_LOVE_HEAP_BASE_HPP

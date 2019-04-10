@@ -165,7 +165,7 @@ namespace data_structure {
                     }
                 }
 
-                size_t size() override {return root ? root->size: 0;}
+        size_t size() const override { return root ? root->size : 0; }
                 const T& top() override { return root->value; }
                 void pop() override {
                     if(!root) return;

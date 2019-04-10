@@ -3,7 +3,7 @@ project(data_structure_for_love)
 
 set(CMAKE_CXX_STANDARD 17)
 LINK_LIBRARIES(gcov)
-ADD_COMPILE_OPTIONS(-O0 -fprofile-arcs -ftest-coverage)
+ADD_COMPILE_OPTIONS(-O2 -fprofile-arcs -ftest-coverage)
 include(misc/test_helper.cmake)
 #include(misc/library_helper.cmake)
 include_directories(utils src/array_like src/memory src/binary_tree src/list_based src/heap)
