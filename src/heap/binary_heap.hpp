@@ -27,7 +27,17 @@ namespace data_structure {
 
                 Alloc alloc {};
                 BinaryHeapNode<T>* root = nullptr;
+                void destroy(BinaryHeapNode<T>* node) {
+                    if(!node) return;
+                    destroy(node->left);
+                    destroy(node->right);
+                    alloc.destroy(node);
+                    alloc.deallocate(node, 1);
+                }
             public:
+                ~BinaryHeap() {
+                    destroy(root);
+                }
                 void push(const T& t) override {
                     BinaryHeapNode<T> **ptr = &root, *old = nullptr;
                     while(*ptr) {
@@ -190,6 +200,7 @@ namespace data_structure {
                     this->alloc.deallocate(p, 1);
                 }
             };
+
 }
 
 #endif //DATA_STRUCTURE_FOR_LOVE_BINARY_HEAP_HPP
