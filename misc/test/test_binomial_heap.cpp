@@ -64,4 +64,23 @@ signed main() {
         copy_res.pop();
     }
     assert(a == d);
+
+    BinomialHeap<int> decrease1 = {1, 3, 5, 1, 2}, decrease2 = {1, 3, 5, 1, 2};
+    auto ha = decrease1.emplace_and_hold(9);
+    ha.re_emplace(-1);
+    std::vector<int> res_ha = {-1, 1, 1, 2, 3, 5}, test_ha;
+    while (decrease1.size()) {
+        test_ha.push_back(decrease1.top());
+        decrease1.pop();
+    }
+    assert(res_ha == test_ha);
+    auto hb = decrease2.push_and_hold(9);
+    hb.re_push(4);
+    hb.re_emplace(-2);
+    std::vector<int> res_hb = {-2, 1, 1, 2, 3, 5}, test_hb;
+    while (decrease2.size()) {
+        test_hb.push_back(decrease2.top());
+        decrease2.pop();
+    }
+    assert(res_hb == test_hb);
 }
