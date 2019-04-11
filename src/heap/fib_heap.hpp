@@ -137,7 +137,7 @@ namespace data_structure {
             for (i = 0; i <= D; ++i)
                 if (a[i]) {
                     this->root = append(this->root, a[i]);
-                    if (this->min_tree == NULL || compare(a[i]->value, this->min_tree->value))
+                    if (this->min_tree == nullptr || compare(a[i]->value, this->min_tree->value))
                         this->min_tree = a[i];
                 }
             delete[] a;
@@ -212,6 +212,36 @@ namespace data_structure {
             }
         }
 
+        FibHeap() = default;
+
+        FibHeap(const std::initializer_list<T> &list) {
+            for (const auto &i : list) {
+                push(i);
+            }
+        }
+
+        FibHeap(FibHeap &&that) noexcept {
+            this->min_tree = that.min_tree;
+            this->root = that.root;
+            this->_size = that._size;
+            that.min_tree = that.root = nullptr;
+            that._size = 0;
+        }
+
+        FibHeap &operator=(FibHeap &&that) noexcept {
+            this->~FibHeap();
+            this->min_tree = that.min_tree;
+            this->root = that.root;
+            this->_size = that._size;
+            that.min_tree = that.root = nullptr;
+            that._size = 0;
+            return *this;
+        }
+
+        FibHeap(const FibHeap &that) = delete;
+
+        FibHeap &operator=(const FibHeap &that) = delete;
+
         void push(const T &t) override {
             insert(new Node(t));
         }
@@ -280,5 +310,6 @@ namespace data_structure {
         }
 
     };
+
 }
 #endif //DATA_STRUCTURE_FOR_LOVE_FIB_HEAP_HPP
