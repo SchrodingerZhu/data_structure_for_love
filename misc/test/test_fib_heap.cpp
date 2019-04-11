@@ -1,7 +1,7 @@
 //
 // Created by schrodinger on 19-4-9.
 //
-#include <binomial_heap.hpp>
+#include <fib_heap.hpp>
 #include <iostream>
 #include <vector>
 #include <random>
@@ -23,8 +23,8 @@ inline auto random_string() {
 
 signed main() {
     using namespace data_structure;
-    BinomialHeap<std::string> test;
-    BinomialHeap<std::string, std::greater<>> test2;
+    FibHeap<std::string> test;
+    FibHeap<std::string, std::greater<>> test2;
     std::vector<std::string> temp, temp2, res, res2;
     for (auto i = 0; i < RANGE; ++i) {
         auto m = random_string();
@@ -46,26 +46,19 @@ signed main() {
     std::sort(temp2.begin(), temp2.end(), std::greater<std::string>{});
     assert(temp == res);
     assert(temp2 == res2);
-    BinomialHeap<int> to_copy = {9, 6, 5, 2, 1, 0, -1, 2, 3}, copy_res;
-    copy_res = to_copy;
     std::vector<int> a = {9, 6, 5, 2, 1, 0, -1, 2, 3}, b;
-    while (copy_res.size()) {
-        b.push_back(copy_res.top());
-        copy_res.pop();
-    }
     std::sort(a.begin(), a.end());
-    assert(a == b);
 
-    BinomialHeap<int> to_move = {9, 6, 5, 2, 1, 0, -1, 2, 3}, move_res;
-    copy_res = std::move(to_move);
+    FibHeap<int> to_move = {9, 6, 5, 2, 1, 0, -1, 2, 3}, move_res;
+    move_res = std::move(to_move);
     std::vector<int> d;
-    while (copy_res.size()) {
-        d.push_back(copy_res.top());
-        copy_res.pop();
+    while (move_res.size()) {
+        d.push_back(move_res.top());
+        move_res.pop();
     }
     assert(a == d);
 
-    BinomialHeap<int> decrease1 = {1, 3, 5, 1, 2}, decrease2 = {1, 3, 5, 1, 2};
+    FibHeap<int> decrease1 = {1, 3, 5, 1, 2}, decrease2 = {1, 3, 5, 1, 2};
     auto ha = decrease1.emplace_and_hold(9);
     ha.re_emplace(-1);
     std::vector<int> res_ha = {-1, 1, 1, 2, 3, 5}, test_ha;
@@ -83,4 +76,16 @@ signed main() {
         decrease2.pop();
     }
     assert(res_hb == test_hb);
+
+    FibHeap<int> ka = {5, 7, 6, 3, 2};
+    FibHeap<int> kb = {4, 7, -1, 9};
+    std::vector<int> kv = {5, 7, 6, 3, 2, 4, 7, -1, 9}, rv;
+    ka.merge(kb);
+    while (ka.size()) {
+        rv.push_back(ka.top());
+        ka.pop();
+    }
+    std::sort(kv.begin(), kv.end());
+    assert(kv == rv);
+    return 0;
 }

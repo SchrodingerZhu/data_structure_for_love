@@ -207,9 +207,46 @@ namespace data_structure {
         }
 
     public:
+        class value_holder {
+            Node *node;
+        public:
+            value_holder(Node *node) : node(node) {}
+
+            const auto &get() {
+                return node->value;
+            }
+
+            void re_push(const T &value) {
+                node->value = value;
+                auto p = node->father;
+                while (p && compare(node->value, p->value)) {
+                    std::swap(node->value, p->value);
+                    node = p;
+                    p = p->father;
+                }
+            }
+
+            template<typename ...Args>
+            void re_emplace(Args &&... args) {
+                node->value = T(std::forward<Args>(args)...);
+                auto p = node->father;
+                while (p && compare(node->value, p->value)) {
+                    std::swap(node->value, p->value);
+                    node = p;
+                    p = p->father;
+                }
+            }
+        };
         void push(const T &t) override {
             root = insert(root, t);
             _size++;
+        }
+
+        value_holder push_and_hold(const T &t) {
+            _size++;
+            auto temp = new Node(t);
+            root = insert_tree(root, temp);
+            return {temp};
         }
 
         const T &top() override {
@@ -229,6 +266,14 @@ namespace data_structure {
         void emplace(Args &&... args) {
             root = emplace(root, std::forward<Args>(args)...);
             _size++;
+        }
+
+        template<typename ...Args>
+        value_holder emplace_and_hold(Args &&... args) {
+            _size++;
+            auto temp = new Node(std::forward<Args>(args)...);
+            root = insert_tree(root, temp);
+            return {temp};
         }
 
         void merge(BinomialHeap &that) {
