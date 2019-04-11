@@ -316,21 +316,19 @@ namespace data_structure {
             friend VebTree;
         };
 
-        using iterator = const_iterator;
-
-        iterator begin() const {
+        const_iterator begin() const {
             return const_iterator{root->min(), this};
         }
 
-        iterator end() const {
+        const_iterator end() const {
             return const_iterator{std::nullopt, this};
         }
 
-        iterator cbegin() const {
+        const_iterator cbegin() const {
             return begin();
         }
 
-        iterator cend() const {
+        const_iterator cend() const {
             return end();
         }
     };
