@@ -4,28 +4,42 @@
 
 #include <van_emde_boas.hpp>
 #include <iostream>
+#include <random>
+#include <set>
+#include <cassert>
 
+std::mt19937_64 eng{};
+std::uniform_int_distribution<int> dist(0, std::numeric_limits<int>::max());
+#define RANGE 10
+#define get_rand() dist(eng)
+
+inline auto random_string() {
+    std::string test{};
+    auto len = get_rand() % 233;
+    while (len--) {
+        test.push_back(static_cast<char>(get_rand() % 128));
+    }
+    return test;
+}
 int main() {
     using namespace data_structure;
     VebTree<int> test;
-    test.insert(9);
-    test.insert(7000);
-    test.insert(7001);
-    std::cout << test.contains(7001) << " " << std::endl;
-    auto m = test.succ(7001);
-
-    if (m) {
-        std::cout << m.value() << std::endl;
-    } else {
-        std::cout << "Nothing" << std::endl;
+    std::set<int> test_set;
+    for (int i = 0; i < RANGE; ++i) {
+        auto t = get_rand();
+        std::cout << t << std::endl;
+        if (!test_set.count(t)) {
+            test_set.insert(t);
+            test.insert(t);
+            assert(test.contains(t));
+        }
     }
-    for (auto i: test) {
-        std::cout << i << std::endl;
+    auto set_iter = test_set.begin();
+    auto veb_iter = test.begin();
+    for (int i = 0; i < test_set.size(); ++i) {
+        std::cout << *set_iter << " " << *veb_iter << std::endl;
+        //assert(*set_iter == *veb_iter);
+        set_iter++;
+        ++veb_iter;
     }
-
-    auto test2 = std::move(test);
-    for (auto i: test2) {
-        std::cout << i << std::endl;
-    }
-    return 0;
 }

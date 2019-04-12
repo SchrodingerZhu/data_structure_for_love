@@ -10,10 +10,20 @@
 #include <optional>
 #include <utility>
 #include <unordered_map>
-
+#include <limits>
+#include <iostream>
 namespace data_structure {
-    template<typename Int, size_t bit = 8 * sizeof(Int)>
-    class VebTree {
+    template<class Int>
+    constexpr std::size_t max_bit(Int t) {
+        if (t <= (1u << 8u)) return 8;
+        else if (t <= (1u << 16u)) return 16;
+        else if (t <= (1ull << 32ull)) return 32;
+        else if (t <= ((unsigned __int128) (1u) << 64u)) return 64;
+        else return 128;
+    }
+
+    template<typename Int, size_t bit = max_bit(std::numeric_limits<Int>::max())>
+    class VebTree : IntegerSetBase<Int> {
         struct NodeBase {
             VebTree *veb = nullptr;
 
@@ -39,7 +49,7 @@ namespace data_structure {
         };
 
         struct hash {
-            size_t operator()(const std::pair<NodeBase *, size_t> &t) const {
+            inline size_t operator()(const std::pair<NodeBase *, size_t> &t) const noexcept {
                 return reinterpret_cast<size_t>(t.first) ^ t.second;
             }
         };
@@ -58,10 +68,22 @@ namespace data_structure {
             }
 
             void cluster(size_t i, Node<(Degree >> Int(1))> *t) {
+                std::cout << "create " << this << ", " << i << std::endl;
                 this->veb->address_map[std::pair{this, i}] = t;
             }
 
             Node<(Degree >> 1u)> *cluster(size_t i) {
+                if (min())
+                    std::cout << "query " << this << " with min " << min().value() << ", " << i << ", which is "
+                              << reinterpret_cast<Node<(Degree >> Int(1))> *>(this->veb->address_map[std::pair{this,
+                                                                                                               i}])
+                              << std::endl;
+                else {
+                    std::cout << "query " << this << ", " << i << ", which is "
+                              << reinterpret_cast<Node<(Degree >> Int(1))> *>(this->veb->address_map[std::pair{this,
+                                                                                                               i}])
+                              << std::endl;
+                }
                 return reinterpret_cast<Node<(Degree >> Int(1))> *>(this->veb->address_map[std::pair{this, i}]);
             }
 
@@ -148,7 +170,8 @@ namespace data_structure {
                 } else if (_min != std::nullopt && x < _min) {
                     return _min;
                 } else {
-                    auto max_low = cluster(high(x))->max();
+                    auto u = cluster(high(x));
+                    auto max_low = u ? u->max() : std::nullopt;
                     if (max_low != std::nullopt && low(x) < max_low) {
                         auto offset = cluster(high(x))->succ(low(x));
                         return index(high(x), offset.value());
@@ -171,7 +194,8 @@ namespace data_structure {
                 } else if (_max != std::nullopt && x > _max) {
                     return _max;
                 } else {
-                    auto min_low = cluster(high(x))->min();
+                    auto u = cluster(high(x));
+                    auto min_low = u ? u->min() : std::nullopt;
                     if (min_low != std::nullopt && low(x) > min_low) {
                         auto offset = cluster(high(x))->pred(low(x));
                         return index(high(x), offset.value());
@@ -230,11 +254,11 @@ namespace data_structure {
         }
 
     public:
-        void insert(Int t) {
+        void insert(Int t) override {
             root->insert(t);
         }
 
-        bool contains(Int t) {
+        bool contains(Int t) const override {
             return root->contains(t);
         }
 
@@ -260,17 +284,25 @@ namespace data_structure {
             that.address_map.clear();
         }
 
-        std::optional<Int> succ(Int x) const {
+        VebTree(const std::initializer_list<Int> &list) : root(new Node<bit - 1>(this)) {
+            for (auto i: list) { this->insert(i); }
+        }
+
+        std::optional<Int> succ(Int x) const override {
             return root->succ(x);
         }
 
-        std::optional<Int> pred(Int x) const {
+        std::optional<Int> pred(Int x) const override {
             return root->pred(x);
         }
 
-        void erase(Int x) {
+        void erase(Int x) override {
             root->erase(x);
         }
+
+        std::optional<Int> min() const override { return root->min(); }
+
+        std::optional<Int> max() const override { return root->max(); }
 
         class const_iterator {
             std::optional<Int> t;
@@ -279,7 +311,7 @@ namespace data_structure {
             const_iterator(std::optional<Int> t, const VebTree *tree) : t(t), tree(tree) {}
 
         public:
-            Int operator*() {
+            Int operator*() const {
                 return t.value();
             }
 
@@ -291,7 +323,10 @@ namespace data_structure {
             }
 
             const const_iterator operator++(int) {
-                return {tree->succ(t.value()), tree};
+                if (t) {
+                    t = tree->succ(t.value());
+                }
+                return {t, tree};
             }
 
             const_iterator &operator--() {
@@ -302,7 +337,10 @@ namespace data_structure {
             }
 
             const const_iterator operator--(int) {
-                return {tree->pred(t.value()), tree};
+                if (t) {
+                    t = tree->pred(t.value());
+                }
+                return {t, tree};
             }
 
             bool operator==(const const_iterator &that) const {
