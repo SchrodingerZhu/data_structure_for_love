@@ -10,8 +10,10 @@
 #include <optional>
 #include <utility>
 #include <unordered_map>
+#include <unordered_set>
 #include <limits>
 #include <iostream>
+#include <sstream>
 namespace data_structure {
     template<class Int>
     constexpr std::size_t max_bit(Int t) {
@@ -31,8 +33,8 @@ namespace data_structure {
 
             virtual std::optional<Int> &min() noexcept = 0;
 
-            virtual size_t degree() const noexcept = 0;
-
+            //virtual size_t degree() const noexcept = 0;
+            size_t degree = 0;
             virtual Int high(Int x) noexcept = 0;
 
             virtual Int low(Int x) noexcept = 0;
@@ -49,8 +51,19 @@ namespace data_structure {
         };
 
         struct hash {
-            inline size_t operator()(const std::pair<NodeBase *, size_t> &t) const noexcept {
-                return reinterpret_cast<size_t>(t.first) ^ t.second;
+
+            inline unsigned __int128 operator()(const std::pair<NodeBase *, size_t> &t) const noexcept {
+                auto hashed = (reinterpret_cast<size_t>(t.first));
+                if (!(t.second / 10)) hashed += hashed * 10 + t.second;
+                else if (!(t.second / 100)) hashed = hashed * 100 + t.second;
+                else if (!(t.second / 1000)) hashed = hashed * 1000 + t.second;
+                else if (!(t.second / 10000)) hashed = hashed * 10000 + t.second;
+                else if (!(t.second / 100000)) hashed = hashed * 100000 + t.second;
+                else if (!(t.second / 1000000)) hashed = hashed * 1000000 + t.second;
+                else if (!(t.second / 10000000)) hashed = hashed * 10000000 + t.second;
+                else if (!(t.second / 100000000)) hashed = hashed * 100000000 + t.second;
+                else hashed ^= t.second;
+                return hashed;
             }
         };
 
@@ -58,33 +71,32 @@ namespace data_structure {
 
         template<size_t Degree>
         struct Node : NodeBase {
-            //constexpr static size_t _degree = Degree;
             std::optional<Int> _max = std::nullopt, _min = std::nullopt;
-
-            Node<((Degree + 1) >> Int(1))> *summary = nullptr;
+            constexpr static size_t degree = Degree;
+            Node<((degree + 1) >> Int(1))> *summary = nullptr;
 
             ~Node() override {
                 if (summary) delete (summary);
             }
 
-            void cluster(size_t i, Node<(Degree >> Int(1))> *t) {
-                std::cout << "create " << this << ", " << i << std::endl;
+            void cluster(size_t i, Node<(degree >> Int(1))> *t) {
+                //std::cout << "create " << this << ", " << i << std::endl;
                 this->veb->address_map[std::pair{this, i}] = t;
             }
 
-            Node<(Degree >> 1u)> *cluster(size_t i) {
-                if (min())
-                    std::cout << "query " << this << " with min " << min().value() << ", " << i << ", which is "
-                              << reinterpret_cast<Node<(Degree >> Int(1))> *>(this->veb->address_map[std::pair{this,
-                                                                                                               i}])
-                              << std::endl;
-                else {
-                    std::cout << "query " << this << ", " << i << ", which is "
-                              << reinterpret_cast<Node<(Degree >> Int(1))> *>(this->veb->address_map[std::pair{this,
-                                                                                                               i}])
-                              << std::endl;
-                }
-                return reinterpret_cast<Node<(Degree >> Int(1))> *>(this->veb->address_map[std::pair{this, i}]);
+            Node<(degree >> 1u)> *cluster(size_t i) {
+//                if (min())
+//                    std::cout << "query " << this << " with min " << min().value() << ", " << i << ", which is "
+//                              << reinterpret_cast<Node<(degree >> Int(1))> *>
+//                                    (this->veb->address_map[std::pair{this, i}])
+//                              << std::endl;
+//                else {
+//                    std::cout << "query " << this << ", " << i << ", which is "
+//                              << reinterpret_cast<Node<(degree >> Int(1))> *>
+//                                    (this->veb->address_map[std::pair{this,i}])
+//                              << std::endl;
+//                }
+                return reinterpret_cast<Node<(degree >> Int(1))> *>(this->veb->address_map[std::pair{this, i}]);
             }
 
             NodeBase *get_summary() override {
@@ -94,28 +106,28 @@ namespace data_structure {
             explicit Node(VebTree *veb) { this->veb = veb; }
 
             Int high(Int x) noexcept override {
-                return x >> (Degree >> Int(1));
+                return x >> (degree >> Int(1));
             }
 
             Int low(Int x) noexcept override {
-                auto a = x & ((Int(1) << ((Degree >> Int(1)) + 1)) - 1),
-                        b = (Int(1) << (Degree >> Int(1)));
-                return (a < b) ? a : a | b;
+                auto a = x & ((Int(1) << ((degree >> Int(1)) + 1)) - 1),
+                        b = (Int(1) << (degree >> Int(1)));
+                return (a < b) ? a : a ^ b;
             }
 
             Int index(Int x, Int y) noexcept override {
-                return (x << (Degree >> Int(1))) + y;
+                return (x << (degree >> Int(1))) + y;
             }
 
             std::optional<Int> &max() noexcept override { return _max; }
 
             std::optional<Int> &min() noexcept override { return _min; }
 
-            size_t degree() const noexcept override { return Degree; }
+//            size_t degree() const noexcept override { return degree; }
 
             bool contains(Int x) override {
                 if ((x == _min) || x == _max) return true;
-                else if (Degree == 1) return false;
+                else if (degree == 1) return false;
                 else {
                     auto *node = cluster(high(x));
                     if (!node) return false;
@@ -123,24 +135,24 @@ namespace data_structure {
                 }
             }
 
-            void check_pos(size_t pos) {
+            inline void check_pos(size_t pos) noexcept {
                 if (!cluster(pos)) {
-                    cluster(pos, new Node<(Degree >> Int(1))>{this->veb});
+                    cluster(pos, new Node<(degree >> Int(1))>{this->veb});
                 }
             }
 
-            void check_summary() {
+            inline void check_summary() noexcept {
                 if (!summary) {
-                    summary = new Node<((Degree + 1) >> Int(1))>{this->veb};
+                    summary = new Node<((degree + 1) >> Int(1))>{this->veb};
                 }
             }
 
-            void empty_insert(Int x) {
+            inline void empty_insert(Int x) noexcept {
                 _max = x;
                 _min = x;
             }
 
-            void insert(Int x) {
+            void insert(Int x) noexcept {
                 if (_min == std::nullopt) empty_insert(x);
                 else {
                     if (x < _min) {
@@ -148,7 +160,7 @@ namespace data_structure {
                         _min = x;
                         x = m;
                     }
-                    if (Degree > 1) {
+                    if (degree > 1) {
                         check_pos(high(x));
                         check_summary();
                         if (cluster(high(x))->_min == std::nullopt) {
@@ -164,7 +176,7 @@ namespace data_structure {
 
             std::optional<Int> succ(Int x) {
                 if (!_max || _max <= x) { return std::nullopt; }
-                else if (Degree == 1) {
+                else if (degree == 1) {
                     if (x == 0 && _max == 1) { return 1; }
                     else return std::nullopt;
                 } else if (_min != std::nullopt && x < _min) {
@@ -188,7 +200,7 @@ namespace data_structure {
 
             std::optional<Int> pred(Int x) {
                 if (!_min || _min >= x) { return std::nullopt; }
-                else if (Degree == 1) {
+                else if (degree == 1) {
                     if (x == 1 && _min == 0) { return 0; }
                     else return std::nullopt;
                 } else if (_max != std::nullopt && x > _max) {
@@ -215,7 +227,7 @@ namespace data_structure {
             void erase(Int x) {
                 if (_min == _max) {
                     _min = _max = std::nullopt;
-                } else if (Degree == 1) {
+                } else if (degree == 1) {
                     if (x == 0) _min = 1;
                     else _min = 0;
                     _max = _min;
@@ -242,10 +254,24 @@ namespace data_structure {
                 }
             }
 
-
+            void display(std::string prop, std::string before) {
+                std::cout << before + prop + ", degree: " << degree << std::endl;
+                if (_min)
+                    std::cout << before << "min: " << _min.value() << std::endl;
+                if (_max)
+                    std::cout << before << "max: " << _max.value() << std::endl;
+                if (summary) summary->display("summary", "    " + before);
+                for (int i = 0; i < (1 << (degree >> 1)); ++i) {
+                    std::stringstream ss;
+                    ss << i;
+                    std::string p;
+                    ss >> p;
+                    if (cluster(i)) cluster(i)->display(std::string("cluster #") + p, "    " + before);
+                }
+            }
         };
 
-        Node<bit - 1> *root = nullptr;
+        Node<bit> *root = nullptr;
 
         template<class N>
         void update_veb(N *n) {
@@ -267,9 +293,9 @@ namespace data_structure {
             for (const auto &i: address_map) { delete i.second; }
         }
 
-        VebTree() : root(new Node<bit - 1>(this)) {};
+        VebTree() : root(new Node<bit>(this)) {};
 
-        VebTree(const VebTree &that) : root(new Node<bit - 1>(this)) {
+        VebTree(const VebTree &that) : root(new Node<bit>(this)) {
             for (auto i: that) this->insert(i);
         }
 
@@ -311,6 +337,7 @@ namespace data_structure {
             const_iterator(std::optional<Int> t, const VebTree *tree) : t(t), tree(tree) {}
 
         public:
+
             Int operator*() const {
                 return t.value();
             }
@@ -368,6 +395,10 @@ namespace data_structure {
 
         const_iterator cend() const {
             return end();
+        }
+
+        void debug() {
+            root->display("root", "");
         }
     };
 
