@@ -6,12 +6,9 @@
 #define DATA_STRUCTURE_FOR_LOVE_VAN_EMDE_BOAS_HPP
 
 #include <integer_set_base.hpp>
-
-#include <optimized_vector.hpp>
 #include <optional>
+#include <cstring>
 #include <utility>
-#include <unordered_map>
-
 #ifdef DEBUG
 #include <unordered_set>
 #include <limits>
@@ -21,15 +18,6 @@
 #endif //DEBUG
 
 namespace data_structure {
-    template<class Int>
-    constexpr std::size_t max_bit(Int t) {
-        if (t <= (1u << 8u)) return 8;
-        else if (t <= (1u << 16u)) return 16;
-        else if (t <= (1ull << 32ull)) return 32;
-        else if (t <= ((unsigned __int128) (1u) << 64u)) return 64;
-        else return 128;
-    }
-
     template<typename Int, size_t bit = max_bit(std::numeric_limits<Int>::max())>
     class VebTree : IntegerSetBase<Int> {
         struct NodeBase {
@@ -56,13 +44,13 @@ namespace data_structure {
 
         template<size_t Degree>
         struct Node : NodeBase {
-            optimized_vector<Node<(Degree >> Int(1))> *, 1 << (Degree >> Int(1))> cluster{};
+            Node<(Degree >> Int(1))> *cluster[1 << (Degree >> Int(1))];
             std::optional<Int> _max = std::nullopt, _min = std::nullopt;
             constexpr static size_t degree = Degree;
             Node<((degree + 1) >> Int(1))> *summary = nullptr;
 
             Node() {
-                cluster.empty_fill_local();
+                std::memset(cluster, 0, sizeof(cluster));
             }
             ~Node() override {
                 if (summary) delete (summary);

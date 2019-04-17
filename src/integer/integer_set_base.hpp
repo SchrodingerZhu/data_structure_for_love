@@ -9,6 +9,16 @@
 #include <cstddef>
 #include <optional>
 namespace data_structure {
+
+    template<class Int>
+    constexpr std::size_t max_bit(Int t) {
+        if (t <= (1u << 8u)) return 8;
+        else if (t <= (1u << 16u)) return 16;
+        else if (t <= (1ull << 32ull)) return 32;
+        else if (t <= ((unsigned __int128) (1u) << 64u)) return 64;
+        else return 128;
+    }
+
     template<typename Int, typename = std::enable_if_t<std::is_integral_v<Int>>>
     class IntegerSetBase {
     public:
