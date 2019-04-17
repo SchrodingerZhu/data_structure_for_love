@@ -235,6 +235,13 @@ namespace data_structure {
             }
         }
 
+        void empty_fill_local() {
+            std::memset(reinterpret_cast<void *>(&mem_union), 0, sizeof(mem_union));
+            mem_state = MEM_STATE::locally;
+            mem_union.local_storage.usage = 0;
+            mark_size(LocalSize);
+        }
+
         bool empty() {return size() == 0;}
         T& back() {return *(end() - 1);}
     private:
