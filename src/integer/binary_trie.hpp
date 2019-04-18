@@ -12,7 +12,7 @@ namespace data_structure {
     class BinaryTrie : IntegerSetBase<Int> {
         std::size_t n = 0;
         struct Path;
-
+        struct Leaf;
         struct Node {
             Path *father = nullptr;
             Node *links[2] = {nullptr, nullptr};
@@ -20,6 +20,8 @@ namespace data_structure {
             virtual Node *get_jump() const noexcept { return nullptr; }
 
             virtual std::optional<Int> get_value() const noexcept { return std::nullopt; }
+
+            virtual ~Node() = default;
         };
 
 //        constexpr static Node dummy {};
@@ -28,17 +30,27 @@ namespace data_structure {
             Node *jump = nullptr;
 
             Node *get_jump() const noexcept override { return jump; }
+
+            ~Path() override {
+                if (this->links[0]) delete (this->links[0]);
+                if (this->links[1]) delete (this->links[1]);
+            };
         } *root;
 
         struct Leaf : Node {
             Int value;
 
             std::optional<Int> get_value() const noexcept override { return value; }
+
+            ~Leaf() override = default;
         };
 
     public:
         BinaryTrie() : root(new Path) {}
 
+        ~BinaryTrie() {
+            delete (root);
+        }
         bool contains(Int t) const override {
             Int i{}, c{};
             Node *u = root;
@@ -48,7 +60,9 @@ namespace data_structure {
                 u = u->links[c];
             }
             if (i == bit) return true;
-            u = (c == 0) ? u->get_jump() : u->get_jump()->links[1];
+            u = (!c) ? u->get_jump() :
+                u->get_jump() ?
+                u->get_jump()->links[1] : nullptr;
             return u == nullptr ? false : u->get_value() == t;
         }
 
@@ -106,8 +120,45 @@ namespace data_structure {
         }
 
         void erase(Int t) override {
+            Int i{};
+            bool c{};
+            Node *u = root;
+            for (; i < bit; ++i) {
+                c = (t >> (bit - i - 1)) & 1;
+                if (u->links[c] == nullptr) return;
+                u = u->links[c];
+            }
+
+            if (u->links[0]) u->links[0]->links[1] = u->links[1];
+            if (u->links[1]) u->links[1]->links[0] = u->links[0];
+            auto m = u->links[!c];
+            Path *v = reinterpret_cast<Path *>(u);
+            for (i = bit - 1; i >= 0; --i) {
+                c = (t >> (bit - i - 1)) & 1;
+                v = v->father;
+                delete v->links[c];
+                v->links[c] = nullptr;
+                if (v->links[!c] || !i) break;
+            }
+
+            c = (t >> (bit - i - 1)) & 1;
+
+            v->jump = m;
+            v = v->father;
+            if (!i) return;
+            n -= 1;
+            for (i -= 1; i >= 0; i -= 1) {
+                c = (t >> (bit - i - 1)) & 1;
+                if (v->jump == u) {
+                    v->jump = m;
+                }
+                v = v->father;
+                if (!i) break;
+            }
 
         }
+
+
     };
 }
 #endif //DATA_STRUCTURE_FOR_LOVE_BINARY_TRIE_HPP
