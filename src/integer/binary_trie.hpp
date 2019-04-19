@@ -7,6 +7,7 @@
 
 
 #include <integer_set_base.hpp>
+#include <optimized_vector.hpp>
 #include <iostream>
 #include <cassert>
 
@@ -50,34 +51,22 @@ namespace data_structure {
             std::optional<Int> get_value() const noexcept override { return value; }
 
             ~Leaf() override = default;
-        };
-
-        const Leaf *min_node() const {
-            Int i{};
-            Node *u = root;
-            for (; i < bit; ++i) {
-                if (u->links[0]) {
-                    u = u->links[0];
-                } else {
-                    u = u->links[1];
-                }
-                if (!u) break;
-            }
-            auto k = dynamic_cast<Leaf *>(u);
-            if (k) return k;
-            else return nullptr;
-        }
+        } dummy;
 
     public:
-        BinaryTrie() : root(new Path) {}
+        BinaryTrie() : root(new Path) {
+            dummy.links[1] = dummy.links[0] = &dummy;
+        }
 
         BinaryTrie(const std::initializer_list<Int> t) : root(new Path) {
+            dummy.links[1] = dummy.links[0] = &dummy;
             for (auto i: t) {
                 this->insert(i);
             }
         }
 
         BinaryTrie(const BinaryTrie &t) : root(new Path) {
+            dummy.links[1] = dummy.links[0] = &dummy;
             for (auto i: t) {
                 this->insert(i);
             }
@@ -86,6 +75,10 @@ namespace data_structure {
         BinaryTrie(BinaryTrie &&t) noexcept {
             n = t.n;
             root = t.root;
+            if (t.dummy.links[0]) t.dummy.links[0]->links[1] = &dummy;
+            if (t.dummy.links[1]) t.dummy.links[1]->links[0] = &dummy;
+            dummy.links[0] = t.dummy.links[0];
+            dummy.links[1] = t.dummy.links[1];
             t.n = 0;
             t.root = nullptr;
         }
@@ -103,13 +96,13 @@ namespace data_structure {
                 u = u->links[c];
             }
             if (i == bit) return true;
-            u = (!c) ? u->get_jump() :
-                u->get_jump() ?
-                u->get_jump()->links[1] : nullptr;
-            return u == nullptr ? false : u->get_value() == t;
+            u = (!c) ? u->get_jump() : u->get_jump()->links[1];
+            return u == &dummy ? false : u->get_value() == t;
         }
 
         std::optional<Int> pred(Int t) const override {
+            if (t <= min())
+                return std::nullopt;
             Int i{}, c{};
             Node *u = root;
             for (; i < bit; ++i) {
@@ -117,15 +110,19 @@ namespace data_structure {
                 if (u->links[c] == nullptr) break;
                 u = u->links[c];
             }
-            if (i == bit) return u->links[0] ? u->links[0]->get_value() : std::nullopt;
-            u = (!c) ? u->get_jump() :
-                u->get_jump() ?
-                u->get_jump()->links[0] : nullptr;
-            while (u && u->get_value() >= t) u = u->links[0];
-            return u == nullptr ? std::nullopt : u->get_value();
+            if (i != bit) u = u->get_jump();
+            if (u->get_value() >= t) {
+                while (u->get_value() >= t && u->links[0] != &dummy) u = u->links[0];
+                return u->get_value();
+            } else {
+                while (u->links[1] != &dummy && u->links[1]->get_value() < t) u = u->links[1];
+                return u->get_value();
+            }
         }
 
         std::optional<Int> succ(Int t) const override {
+            if (t >= max())
+                return std::nullopt;
             Int i{}, c{};
             Node *u = root;
             for (; i < bit; ++i) {
@@ -133,43 +130,23 @@ namespace data_structure {
                 if (u->links[c] == nullptr) break;
                 u = u->links[c];
             }
-            if (i == bit) return u->links[1] ? u->links[1]->get_value() : std::nullopt;
-            u = (!c) ? u->get_jump() :
-                u->get_jump() ?
-                u->get_jump()->links[1] : nullptr;
-            if (u && u->get_value() == t) u = u->links[1];
-            return u == nullptr ? std::nullopt : u->get_value();
+            if (i != bit) u = u->get_jump();
+            if (u->get_value() <= t) {
+                while (u->get_value() <= t && u->links[1] != &dummy) u = u->links[1];
+                return u->get_value();
+            } else {
+                while (u->links[0] != &dummy && u->links[0]->get_value() > t) u = u->links[0];
+                return u->get_value();
+            }
         }
 
         std::optional<Int> max() const override {
-            Int i{};
-            Node *u = root;
-            for (; i < bit; ++i) {
-                if (u->links[1]) {
-                    u = u->links[1];
-                } else {
-                    u = u->links[0];
-                }
-
-            }
-            auto k = dynamic_cast<Leaf *>(u);
-            if (k) return k->value;
+            if (dummy.links[0] != &dummy) return dummy.links[0]->get_value();
             else return std::nullopt;
         }
 
         std::optional<Int> min() const override {
-            Int i{};
-            Node *u = root;
-            for (; i < bit; ++i) {
-                if (u->links[0]) {
-                    u = u->links[0];
-                } else {
-                    u = u->links[1];
-                }
-
-            }
-            auto k = dynamic_cast<Leaf *>(u);
-            if (k) return k->value;
+            if (dummy.links[1] != &dummy) return dummy.links[1]->get_value();
             else return std::nullopt;
         }
 
@@ -184,7 +161,7 @@ namespace data_structure {
             if (i == bit) return;
             auto pred = c ? u->get_jump() :
                         (u->get_jump() ?
-                         u->get_jump()->links[0] : nullptr);
+                         u->get_jump()->links[0] : &dummy);
             auto k = dynamic_cast<Path *>(u);
             if (k) k->jump = nullptr;
             for (; i < bit; i++) {
@@ -198,9 +175,9 @@ namespace data_structure {
             auto m = reinterpret_cast<Leaf *>(u);
             m->value = t;
             m->links[0] = pred;
-            m->links[1] = pred ? pred->links[1] : nullptr;
-            if (m->links[0]) m->links[0]->links[1] = u;
-            if (m->links[1]) m->links[1]->links[0] = u;
+            m->links[1] = pred->links[1];
+            m->links[0]->links[1] = u;
+            m->links[1]->links[0] = u;
             Path *v = u->father;
             while (v) {
                 if ((!v->links[0] && (!v->get_jump() || v->get_jump()->get_value() > t)) ||
@@ -222,8 +199,8 @@ namespace data_structure {
                 u = u->links[c];
             }
 
-            if (u->links[0]) u->links[0]->links[1] = u->links[1];
-            if (u->links[1]) u->links[1]->links[0] = u->links[0];
+            u->links[0]->links[1] = u->links[1];
+            u->links[1]->links[0] = u->links[0];
             Node *m[2];
             m[0] = u->links[0];
             m[1] = u->links[1];
@@ -303,11 +280,11 @@ namespace data_structure {
         };
 
         const_iterator begin() const {
-            return const_iterator(min_node());
+            return const_iterator(reinterpret_cast<Leaf *>(dummy.links[1]));
         }
 
         const_iterator end() const {
-            return const_iterator(nullptr);
+            return const_iterator(&dummy);
         }
 
         const_iterator cbegin() const {
