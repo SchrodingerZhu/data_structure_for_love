@@ -5,7 +5,10 @@
 #ifndef DATA_STRUCTURE_FOR_LOVE_BINARY_TRIE_HPP
 #define DATA_STRUCTURE_FOR_LOVE_BINARY_TRIE_HPP
 
+
 #include <integer_set_base.hpp>
+#include <iostream>
+#include <cassert>
 
 namespace data_structure {
     template<typename Int, size_t bit = max_bit(std::numeric_limits<Int>::max())>
@@ -13,6 +16,7 @@ namespace data_structure {
         std::size_t n = 0;
         struct Path;
         struct Leaf;
+
         struct Node {
             Path *father = nullptr;
             Node *links[2] = {nullptr, nullptr};
@@ -34,6 +38,9 @@ namespace data_structure {
             ~Path() override {
                 if (this->links[0]) delete (this->links[0]);
                 if (this->links[1]) delete (this->links[1]);
+#ifdef DEBUG
+                assert((this->links[0] && this->links[1]) || jump || !this->father);
+#endif //DEBUG
             };
         } *root;
 
@@ -45,12 +52,48 @@ namespace data_structure {
             ~Leaf() override = default;
         };
 
+        const Leaf *min_node() const {
+            Int i{};
+            Node *u = root;
+            for (; i < bit; ++i) {
+                if (u->links[0]) {
+                    u = u->links[0];
+                } else {
+                    u = u->links[1];
+                }
+                if (!u) break;
+            }
+            auto k = dynamic_cast<Leaf *>(u);
+            if (k) return k;
+            else return nullptr;
+        }
+
     public:
         BinaryTrie() : root(new Path) {}
 
-        ~BinaryTrie() {
-            delete (root);
+        BinaryTrie(const std::initializer_list<Int> t) : root(new Path) {
+            for (auto i: t) {
+                this->insert(i);
+            }
         }
+
+        BinaryTrie(const BinaryTrie &t) : root(new Path) {
+            for (auto i: t) {
+                this->insert(i);
+            }
+        }
+
+        BinaryTrie(BinaryTrie &&t) noexcept {
+            n = t.n;
+            root = t.root;
+            t.n = 0;
+            t.root = nullptr;
+        }
+
+        ~BinaryTrie() {
+            if (root) delete (root);
+        }
+
         bool contains(Int t) const override {
             Int i{}, c{};
             Node *u = root;
@@ -67,19 +110,67 @@ namespace data_structure {
         }
 
         std::optional<Int> pred(Int t) const override {
-
+            Int i{}, c{};
+            Node *u = root;
+            for (; i < bit; ++i) {
+                c = (t >> (bit - i - 1)) & 1;
+                if (u->links[c] == nullptr) break;
+                u = u->links[c];
+            }
+            if (i == bit) return u->links[0] ? u->links[0]->get_value() : std::nullopt;
+            u = (!c) ? u->get_jump() :
+                u->get_jump() ?
+                u->get_jump()->links[0] : nullptr;
+            while (u && u->get_value() >= t) u = u->links[0];
+            return u == nullptr ? std::nullopt : u->get_value();
         }
 
         std::optional<Int> succ(Int t) const override {
-
+            Int i{}, c{};
+            Node *u = root;
+            for (; i < bit; ++i) {
+                c = (t >> (bit - i - 1)) & 1;
+                if (u->links[c] == nullptr) break;
+                u = u->links[c];
+            }
+            if (i == bit) return u->links[1] ? u->links[1]->get_value() : std::nullopt;
+            u = (!c) ? u->get_jump() :
+                u->get_jump() ?
+                u->get_jump()->links[1] : nullptr;
+            if (u && u->get_value() == t) u = u->links[1];
+            return u == nullptr ? std::nullopt : u->get_value();
         }
 
         std::optional<Int> max() const override {
+            Int i{};
+            Node *u = root;
+            for (; i < bit; ++i) {
+                if (u->links[1]) {
+                    u = u->links[1];
+                } else {
+                    u = u->links[0];
+                }
 
+            }
+            auto k = dynamic_cast<Leaf *>(u);
+            if (k) return k->value;
+            else return std::nullopt;
         }
 
         std::optional<Int> min() const override {
+            Int i{};
+            Node *u = root;
+            for (; i < bit; ++i) {
+                if (u->links[0]) {
+                    u = u->links[0];
+                } else {
+                    u = u->links[1];
+                }
 
+            }
+            auto k = dynamic_cast<Leaf *>(u);
+            if (k) return k->value;
+            else return std::nullopt;
         }
 
         void insert(Int t) override {
@@ -92,8 +183,10 @@ namespace data_structure {
             }
             if (i == bit) return;
             auto pred = c ? u->get_jump() :
-                        u->get_jump() ?
-                        u->get_jump()->links[0] : nullptr;
+                        (u->get_jump() ?
+                         u->get_jump()->links[0] : nullptr);
+            auto k = dynamic_cast<Path *>(u);
+            if (k) k->jump = nullptr;
             for (; i < bit; i++) {
                 c = (t >> (bit - i - 1)) & 1;
                 if (i != bit - 1)
@@ -131,8 +224,10 @@ namespace data_structure {
 
             if (u->links[0]) u->links[0]->links[1] = u->links[1];
             if (u->links[1]) u->links[1]->links[0] = u->links[0];
-            auto m = u->links[!c];
-            Path *v = reinterpret_cast<Path *>(u);
+            Node *m[2];
+            m[0] = u->links[0];
+            m[1] = u->links[1];
+            Node *v = u;
             for (i = bit - 1; i >= 0; --i) {
                 c = (t >> (bit - i - 1)) & 1;
                 v = v->father;
@@ -140,25 +235,88 @@ namespace data_structure {
                 v->links[c] = nullptr;
                 if (v->links[!c] || !i) break;
             }
-
             c = (t >> (bit - i - 1)) & 1;
-
-            v->jump = m;
-            v = v->father;
+            auto p = reinterpret_cast<Path *>(v);
+            p->jump = m[!c];
+            p = p->father;
             if (!i) return;
             n -= 1;
             for (i -= 1; i >= 0; i -= 1) {
                 c = (t >> (bit - i - 1)) & 1;
-                if (v->jump == u) {
-                    v->jump = m;
+                if (p->jump == u) {
+                    p->jump = m[!c];
                 }
-                v = v->father;
+                p = p->father;
                 if (!i) break;
             }
 
         }
 
+        class const_iterator {
+            const Leaf *leaf;
 
+            explicit const_iterator(const Leaf *leaf) : leaf(leaf) {}
+
+        public:
+
+            Int operator*() const {
+                return leaf->get_value().value();
+            }
+
+            const_iterator &operator++() {
+                if (leaf) {
+                    leaf = reinterpret_cast<Leaf *>(leaf->links[1]);
+                }
+                return *this;
+            }
+
+            const const_iterator operator++(int) {
+                if (leaf) {
+                    leaf = reinterpret_cast<Leaf *>(leaf->links[1]);
+                }
+                return const_iterator{leaf};
+            }
+
+            const_iterator &operator--() {
+                if (leaf) {
+                    leaf = reinterpret_cast<Leaf *>(leaf->links[0]);
+                }
+                return *this;
+            }
+
+            const const_iterator operator--(int) {
+                if (leaf) {
+                    leaf = reinterpret_cast<Leaf *>(leaf->links[0]);
+                }
+                return {leaf};
+            }
+
+            bool operator==(const const_iterator &that) const {
+                return leaf == that.leaf;
+            }
+
+            bool operator!=(const const_iterator &that) const {
+                return leaf != that.leaf;
+            }
+
+            friend BinaryTrie;
+        };
+
+        const_iterator begin() const {
+            return const_iterator(min_node());
+        }
+
+        const_iterator end() const {
+            return const_iterator(nullptr);
+        }
+
+        const_iterator cbegin() const {
+            return begin();
+        }
+
+        const_iterator cend() const {
+            return end();
+        }
     };
 }
 #endif //DATA_STRUCTURE_FOR_LOVE_BINARY_TRIE_HPP
