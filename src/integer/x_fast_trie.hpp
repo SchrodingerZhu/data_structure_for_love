@@ -2,21 +2,25 @@
 // Created by schrodinger on 19-4-18.
 //
 
-#ifndef DATA_STRUCTURE_FOR_LOVE_BINARY_TRIE_HPP
-#define DATA_STRUCTURE_FOR_LOVE_BINARY_TRIE_HPP
+#ifndef DATA_STRUCTURE_FOR_LOVE_X_FAST_TRIE_TRIE_HPP
+#define DATA_STRUCTURE_FOR_LOVE_X_FAST_TRIE_TRIE_HPP
 
-
+#include <new>
 #include <integer_set_base.hpp>
 #include <optimized_vector.hpp>
 #include <iostream>
 #include <cassert>
+#include <xfast_hash.hpp>
 
 namespace data_structure {
+    using namespace utils;
+
     template<typename Int, size_t bit = max_bit(std::numeric_limits<Int>::max())>
-    class BinaryTrie : IntegerSetBase<Int> {
+    struct XFastTrie : IntegerSetBase<Int> {
         std::size_t n = 0;
         struct Path;
         struct Leaf;
+
 
         struct Node {
             Path *father = nullptr;
@@ -53,26 +57,30 @@ namespace data_structure {
             ~Leaf() override = default;
         } dummy;
 
+        BitHashBase<Node *> *maps[bit + 1]{};
     public:
-        BinaryTrie() : root(new Path) {
+        XFastTrie() : root(new Path) {
+            _Builder<Node *, bit + 1> m(maps + bit);
             dummy.links[1] = dummy.links[0] = &dummy;
         }
 
-        BinaryTrie(const std::initializer_list<Int> t) : root(new Path) {
-            dummy.links[1] = dummy.links[0] = &dummy;
-            for (auto i: t) {
-                this->insert(i);
-            }
-        }
-
-        BinaryTrie(const BinaryTrie &t) : root(new Path) {
+        XFastTrie(const std::initializer_list<Int> t) : root(new Path) {
+            _Builder<Node *, bit + 1> m(maps + bit);
             dummy.links[1] = dummy.links[0] = &dummy;
             for (auto i: t) {
                 this->insert(i);
             }
         }
 
-        BinaryTrie(BinaryTrie &&t) noexcept {
+        XFastTrie(const XFastTrie &t) : root(new Path) {
+            _Builder<Node *, bit + 1> m(maps + bit);
+            dummy.links[1] = dummy.links[0] = &dummy;
+            for (auto i: t) {
+                this->insert(i);
+            }
+        }
+
+        XFastTrie(XFastTrie &&t) noexcept {
             n = t.n;
             root = t.root;
             if (t.dummy.links[0]) t.dummy.links[0]->links[1] = &dummy;
@@ -81,23 +89,31 @@ namespace data_structure {
             dummy.links[1] = t.dummy.links[1];
             t.n = 0;
             t.root = nullptr;
+            std::copy(t.maps, t.maps + bit + 1, maps);
+            std::memset(t.maps, 0, sizeof(t.maps));
         }
 
-        ~BinaryTrie() {
+        ~XFastTrie() {
             if (root) delete (root);
+            for (auto i: maps) { if (i) ::operator delete(i); }
         }
 
         bool contains(Int t) const override {
-            Int i{}, c{};
-            Node *u = root;
-            for (; i < bit; ++i) {
-                c = (t >> (bit - i - 1)) & 1;
-                if (u->links[c] == nullptr) break;
-                u = u->links[c];
+            Int l = 0, h = bit + 1;
+            Node *v, *u = root;
+            while (h - l > 1) {
+                Int i = (l + h) >> 1;
+                if ((v = maps[i]->get(t >> (bit - i))) == nullptr) {
+                    h = i;
+                } else {
+                    u = v;
+                    l = i;
+                }
             }
-            if (i == bit) return true;
-            u = (!c) ? u->get_jump() : u->get_jump()->links[1];
-            return u == &dummy ? false : u->get_value() == t;
+            if (l == bit) return u->get_value() == t;
+            Node *pred = (((t >> (bit - l - 1)) & 1) == 1)
+                         ? u->get_jump() : u->get_jump()->links[0];
+            return (pred->links[1] == &dummy) ? false : pred->links[1]->get_value() == t;
         }
 
         std::optional<Int> pred(Int t) const override {
@@ -170,6 +186,7 @@ namespace data_structure {
                 if (i != bit - 1)
                     u->links[c] = new Path;
                 else u->links[c] = new Leaf;
+                maps[i + 1]->put(t >> (bit - i - 1), u->links[c]);
                 u->links[c]->father = reinterpret_cast<Path *>(u);
                 u = u->links[c];
             }
@@ -277,7 +294,7 @@ namespace data_structure {
                 return leaf != that.leaf;
             }
 
-            friend BinaryTrie;
+            friend XFastTrie;
         };
 
         const_iterator begin() const {
@@ -297,4 +314,4 @@ namespace data_structure {
         }
     };
 }
-#endif //DATA_STRUCTURE_FOR_LOVE_BINARY_TRIE_HPP
+#endif //DATA_STRUCTURE_FOR_LOVE_X_FAST_TRIE_TRIE_HPP
