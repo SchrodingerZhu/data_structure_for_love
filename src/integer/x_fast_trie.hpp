@@ -119,14 +119,18 @@ namespace data_structure {
         std::optional<Int> pred(Int t) const override {
             if (t <= min())
                 return std::nullopt;
-            Int i{}, c{};
-            Node *u = root;
-            for (; i < bit; ++i) {
-                c = (t >> (bit - i - 1)) & 1;
-                if (u->links[c] == nullptr) break;
-                u = u->links[c];
+            Int l = 0, h = bit + 1;
+            Node *v, *u = root;
+            while (h - l > 1) {
+                Int i = (l + h) >> 1;
+                if ((v = maps[i]->get(t >> (bit - i))) == nullptr) {
+                    h = i;
+                } else {
+                    u = v;
+                    l = i;
+                }
             }
-            if (i != bit) u = u->get_jump();
+            if (l != bit) u = u->get_jump();
             if (u->get_value() >= t) {
                 while (u->get_value() >= t && u->links[0] != &dummy) u = u->links[0];
                 return u->get_value();
@@ -139,14 +143,18 @@ namespace data_structure {
         std::optional<Int> succ(Int t) const override {
             if (t >= max())
                 return std::nullopt;
-            Int i{}, c{};
-            Node *u = root;
-            for (; i < bit; ++i) {
-                c = (t >> (bit - i - 1)) & 1;
-                if (u->links[c] == nullptr) break;
-                u = u->links[c];
+            Int l = 0, h = bit + 1;
+            Node *v, *u = root;
+            while (h - l > 1) {
+                Int i = (l + h) >> 1;
+                if ((v = maps[i]->get(t >> (bit - i))) == nullptr) {
+                    h = i;
+                } else {
+                    u = v;
+                    l = i;
+                }
             }
-            if (i != bit) u = u->get_jump();
+            if (l != bit) u = u->get_jump();
             if (u->get_value() <= t) {
                 while (u->get_value() <= t && u->links[1] != &dummy) u = u->links[1];
                 return u->get_value();
@@ -227,6 +235,7 @@ namespace data_structure {
                 c = (t >> (bit - i - 1)) & 1;
                 v = v->father;
                 delete v->links[c];
+                maps[i + 1]->put(t >> (bit - i - 1), nullptr);
                 v->links[c] = nullptr;
                 if (v->links[!c] || !i) break;
             }

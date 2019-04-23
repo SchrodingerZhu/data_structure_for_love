@@ -35,28 +35,28 @@ namespace data_structure::utils {
     };
 
     template<class T, size_t N>
-    using BitHash = BitHashImpl<T, N, (N <= 6)>;
+    using BitHash = BitHashImpl<T, N, (N <= 8)>;
 
 
     template<class T, size_t N>
     class BitHashImpl<T, N, false> : public BitHashBase<T> {
-        BitHash<T, N - 6> *mem[(1u << 6u)];
+        BitHash<T, N - 8> *mem[(1u << 8u)];
     public:
         BitHashImpl() {
             std::memset(mem, 0, sizeof(mem));
         }
 
         T get(size_t index) {
-            auto shifted = index >> 6u;
-            auto mask = index & ((1u << 6u) - 1);
+            auto shifted = index >> 8u;
+            auto mask = index & ((1u << 8u) - 1);
             if (!mem[mask]) return T{};
             else return mem[mask]->get(shifted);
         }
 
         void put(size_t index, T m) {
-            auto shifted = index >> 6u;
-            auto mask = index & ((1u << 6u) - 1);
-            if (!mem[mask]) mem[mask] = new BitHash<T, N - 6>;
+            auto shifted = index >> 8u;
+            auto mask = index & ((1u << 8u) - 1);
+            if (!mem[mask]) mem[mask] = new BitHash<T, N - 8>;
             mem[mask]->put(shifted, m);
         }
 
