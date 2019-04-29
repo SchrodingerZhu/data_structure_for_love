@@ -1,0 +1,8 @@
+//
+// Created by schrodinger on 19-4-29.
+//
+
+#ifndef DATA_STRUCTURE_FOR_LOVE_Y_FAST_TRIE_HPP
+#define DATA_STRUCTURE_FOR_LOVE_Y_FAST_TRIE_HPP
+
+#endif //DATA_STRUCTURE_FOR_LOVE_Y_FAST_TRIE_HPP
