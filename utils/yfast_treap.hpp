@@ -10,11 +10,16 @@
 
 #ifdef DEBUG
 #include <cassert>
+
 #endif
 namespace data_structure::utils {
 
     template<class T>
     struct YTreap {
+#ifdef DEBUG
+        size_t ALLOC = 0;
+        size_t DELETE = 0;
+#endif//DEBUG
         static RandomIntGen<int> generator;
 
         enum DIRECTION : bool {
@@ -35,14 +40,32 @@ namespace data_structure::utils {
                 destroy(u->children[left]);
                 destroy(u->children[right]);
                 delete u;
+#ifdef DEBUG
+                DELETE += 1;
+#endif //DEBUG
             }
 
         }
 
         ~YTreap() {
             destroy(root);
+#ifdef DEBUG
+            assert(ALLOC == DELETE);
+#endif //DEBUG
         }
 
+        YTreap() = default;
+
+        YTreap(YTreap &&that) noexcept {
+            root = that.root;
+            that.root = nullptr;
+#ifdef DEBUG
+            ALLOC = that.ALLOC;
+            DELETE = that.DELETE;
+            that.ALLOC = 0;
+            that.DELETE = 0;
+#endif //DEBUG
+        }
         void rotate(TNode *u, DIRECTION direction) {
             TNode *w = u->children[!direction];
             w->father = u->father;
@@ -88,6 +111,9 @@ namespace data_structure::utils {
             auto m = locate(value);
             if (!*m.first) {
                 auto temp = new TNode;
+#ifdef DEBUG
+                ALLOC += 1;
+#endif //DEBUG
                 temp->value = value;
                 temp->father = m.second;
                 *m.first = temp;
@@ -112,27 +138,102 @@ namespace data_structure::utils {
             }
         }
 
-        void remove(T value) {
-            auto p = locate(value);
-            if (*p.first) {
-                trickle_down(*p.first);
+        void erase(T value) {
+            auto u = *locate(value).first;
+            if (u) {
+                trickle_down(u);
 #ifdef DEBUG
-                assert(!(*p.first)->children[left] && !(*p.first)->children[right]);
+                assert(!u->children[left] && !u->children[right]);
 #endif //DEBUG
-                if (p.second) {
-                    if (p.second->children[left] == *p.first) {
-                        p.second->children[left] = nullptr;
+                if (u->father) {
+                    if (u->father->children[left] == u) {
+                        u->father->children[left] = nullptr;
                     } else {
-                        p.second->children[right] = nullptr;
+                        u->father->children[right] = nullptr;
                     }
                 }
-                delete *p.first;
+                delete u;
+#ifdef DEBUG
+                DELETE += 1;
+#endif //DEBUG
+                if (root == u) root = nullptr;
             }
         }
 
         bool contains(T value) {
             return *locate(value).first;
         }
+
+        void absorb_smaller(YTreap &that) noexcept {
+            auto *s = new TNode();
+#ifdef DEBUG
+            ALLOC += 1;
+#endif //DEBUG
+            s->children[right] = root;
+            if (root) root->father = s;
+            s->children[left] = that.root;
+            if (that.root) that.root->father = s;
+            root = s;
+            that.root = nullptr;
+            trickle_down(s);
+            if (s->father) {
+                if (s->father->children[left] == s) {
+                    s->father->children[left] = nullptr;
+                } else {
+                    s->father->children[right] = nullptr;
+                }
+            }
+            delete s;
+#ifdef DEBUG
+            DELETE += 1;
+            ALLOC += that.ALLOC;
+            DELETE += that.DELETE;
+            that.ALLOC = 0;
+            that.DELETE = 0;
+#endif //DEBUG
+            if (root == s) root = nullptr;
+        }
+
+#ifdef DEBUG
+
+        void recount(TNode *t) {
+            if (!t) return;
+            else {
+                ALLOC += 1;
+                recount(t->children[left]);
+                recount(t->children[right]);
+            }
+        }
+
+#endif //DEBUG
+
+        YTreap split(T x) {
+            TNode *u = *locate(x).first;
+#ifdef DEBUG
+            ALLOC = 0;
+            DELETE = 0;
+#endif //DEBUG
+            if (!u) { return {}; }
+            TNode s{};
+            if (!u->children[right]) { u->children[right] = &s; }
+            else {
+                u = u->children[right];
+                while (u->children[left]) u = u->children[left];
+                u->children[left] = &s;
+            }
+            s.father = u;
+            s.p = -1;
+            bubble_up(&s);
+            this->root = s.children[right];
+            if (root) root->father = nullptr;
+            YTreap another;
+            another.root = s.children[left];
+            if (another.root) another.root->father = nullptr;
+            recount(root);
+            another.recount(another.root);
+            return another;
+        }
+
 
     };
 
