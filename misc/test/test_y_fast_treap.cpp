@@ -1,19 +1,20 @@
 //
 // Created by schrodinger on 19-4-30.
 //
-#include <yfast_treap.hpp>
-#include <static_random_helper.hpp>
-
 #define DEBUG
 
+#include <set>
+#include <yfast_treap.hpp>
+#include <iostream>
+#include <static_random_helper.hpp>
 #include <cassert>
 
 int main() {
 
     using namespace data_structure::utils;
-    RandomRealGen<double> rand;
-    YTreap<double> test;
-    for (int i = 0; i < 1000; ++i) {
+    RandomIntGen<long, 0, 1000> rand;
+    YTreap<long> test;
+    for (int i = 0; i < 10000; ++i) {
         auto k = rand();
         test.insert(k);
         assert(test.contains(k));
@@ -21,14 +22,58 @@ int main() {
 
     for (int i = 0; i < 100000; ++i) {
         auto k = rand();
-        test.remove(k);
+        test.erase(k);
         assert(!test.contains(k));
     }
+
 
     for (int i = 0; i < 100000; ++i) {
         test.insert(i);
         assert(test.contains(i));
     }
 
+    std::set<long> base;
+    YTreap<long> a, b;
+    for (int i = 0; i < 10000; ++i) {
+        auto k = rand() % 10000;
+        a.insert(k);
+        base.insert(k);
+        assert(test.contains(k));
+    }
+
+    for (int i = 0; i < 10000; ++i) {
+        auto k = rand() + 10000;
+        b.insert(k);
+        base.insert(k);
+        assert(test.contains(k));
+    }
+
+    b.absorb_smaller(a);
+    for (auto i : base) {
+        assert(b.contains(i));
+        b.erase(i);
+        assert(!b.contains(i));
+    }
+
+    auto p = std::move(b);
+    {
+        YTreap<long> s;
+        for (auto i = 0; i <= 5000; ++i) {
+            s.insert(i);
+        }
+        auto t = s.split(2550);
+        for (auto i = 0; i <= 2550; ++i) {
+            assert(!s.contains(i));
+            assert(t.contains(i));
+        }
+        for (auto i = 2551; i <= 5000; ++i) {
+            assert(s.contains(i));
+            assert(!t.contains(i));
+        }
+    }
+
+
     return 0;
 }
+
+#undef DEBUG
