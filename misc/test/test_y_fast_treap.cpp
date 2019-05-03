@@ -12,7 +12,7 @@
 int main() {
 
     using namespace data_structure::utils;
-    RandomIntGen<long, 0, 1000> rand;
+    RandomIntGen<long> rand;
     YTreap<long> test;
     for (int i = 0; i < 10000; ++i) {
         auto k = rand();
@@ -32,20 +32,24 @@ int main() {
         assert(test.contains(i));
     }
 
+    for (int i = 0; i < 100000; ++i) {
+        assert(test.contains(i));
+    }
+
     std::set<long> base;
     YTreap<long> a, b;
     for (int i = 0; i < 10000; ++i) {
-        auto k = rand() % 10000;
+        auto k = rand() % 100000;
         a.insert(k);
         base.insert(k);
-        assert(test.contains(k));
+        assert(a.contains(k));
     }
 
     for (int i = 0; i < 10000; ++i) {
-        auto k = rand() + 10000;
+        auto k = rand() % 100000 + 100000;
         b.insert(k);
         base.insert(k);
-        assert(test.contains(k));
+        assert(b.contains(k));
     }
 
     b.absorb_smaller(a);

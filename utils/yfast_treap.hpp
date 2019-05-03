@@ -48,6 +48,7 @@ namespace data_structure::utils {
         }
 
         ~YTreap() {
+
             destroy(root);
 #ifdef DEBUG
             assert(ALLOC == DELETE);
@@ -55,6 +56,7 @@ namespace data_structure::utils {
         }
 
         YTreap() = default;
+
 
         YTreap(YTreap &&that) noexcept {
             root = that.root;
@@ -107,7 +109,7 @@ namespace data_structure::utils {
             return {p, f};
         }
 
-        void insert(T value) {
+        bool insert(T value) {
             auto m = locate(value);
             if (!*m.first) {
                 auto temp = new TNode;
@@ -118,7 +120,9 @@ namespace data_structure::utils {
                 temp->father = m.second;
                 *m.first = temp;
                 bubble_up(temp);
+                return true;
             }
+            return false;
         }
 
         void trickle_down(TNode *u) {
@@ -138,7 +142,7 @@ namespace data_structure::utils {
             }
         }
 
-        void erase(T value) {
+        bool erase(T value) {
             auto u = *locate(value).first;
             if (u) {
                 trickle_down(u);
@@ -157,7 +161,9 @@ namespace data_structure::utils {
                 DELETE += 1;
 #endif //DEBUG
                 if (root == u) root = nullptr;
+                return true;
             }
+            return false;
         }
 
         bool contains(T value) {
@@ -234,6 +240,110 @@ namespace data_structure::utils {
             return another;
         }
 
+        std::optional<T> min() const noexcept {
+            if (!root) return std::nullopt;
+            else {
+                auto u = root;
+                while (u->children[left]) {
+                    u = u->children[left];
+                }
+                return u->value;
+            }
+        }
+
+        std::optional<T> max() const noexcept {
+            if (!root) return std::nullopt;
+            else {
+                auto u = root;
+                while (u->children[right]) {
+                    u = u->children[right];
+                }
+                return u->value;
+            }
+        }
+
+        static TNode *max_node(TNode *n) noexcept {
+            if (!n) return nullptr;
+            while (n->children[right]) {
+                n = n->children[right];
+            }
+            return n;
+        }
+
+        static TNode *min_node(TNode *n) noexcept {
+            if (!n) return nullptr;
+            while (n->children[left]) {
+                n = n->children[left];
+            }
+            return n;
+        }
+
+        static TNode *pred(TNode *n) {
+            if (!n) return nullptr;
+            if (n->children[left]) return max_node(n->children[left]);
+            else {
+                while (n->father && n != n->father->children[right]) {
+                    n = n->father;
+                }
+                return n->father;
+            }
+        }
+
+        static TNode *succ(TNode *n) {
+            if (!n) return nullptr;
+            if (n->children[right]) return min_node(n->children[right]);
+            else {
+                while (n->father && n != n->father->children[left]) {
+                    n = n->father;
+                }
+                return n->father;
+            }
+        }
+
+        std::optional<T> succ(T t) {
+            auto u = root;
+            while (u) {
+                if (u->value <= t) u = u->children[right];
+                else {
+                    auto p = pred(u);
+                    if (p && p->value > t) u = p;
+                    else break;
+                }
+            }
+            if (u) return u->value;
+            else return std::nullopt;
+        }
+
+#ifdef DEBUG
+
+        std::vector<T> to_vec() {
+            std::vector<T> m;
+            to_vec(root, m);
+            return m;
+        }
+
+        void to_vec(TNode *t, std::vector<T> &v) {
+            if (!t) return;
+            to_vec(t->children[left], v);
+            v.push_back(t->value);
+            to_vec(t->children[right], v);
+        }
+
+#endif //DEBUG
+
+        std::optional<T> pred(T t) {
+            auto u = root;
+            while (u) {
+                if (u->value >= t) u = u->children[left];
+                else {
+                    auto p = succ(u);
+                    if (p && p->value < t) u = p;
+                    else break;
+                }
+            }
+            if (u) return u->value;
+            else return std::nullopt;
+        }
 
     };
 
