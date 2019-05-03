@@ -35,14 +35,14 @@ namespace data_structure {
 
         optimized_vector() noexcept {
             static_assert(LocalSize, "LocalSize cannot be zero");
-            std::memset(static_cast<void *>(&mem_union), 0, sizeof(mem_union));
+            std::memset(reinterpret_cast<void *>(&mem_union), 0, sizeof(mem_union));
             mem_state = MEM_STATE::uninitialized;
         }
 
         explicit optimized_vector(size_type count, value_type const& value = value_type())  {
             static_assert(LocalSize, "LocalSize cannot be zero");
             mem_state = MEM_STATE::uninitialized;
-            std::memset(static_cast<void *>(&mem_union), 0, sizeof(mem_union));
+            std::memset(reinterpret_cast<void *>(&mem_union), 0, sizeof(mem_union));
             if (count == 0) return;
             else {
                 assure_capacity(count);
@@ -56,7 +56,7 @@ namespace data_structure {
         optimized_vector(optimized_vector const &that) {
             static_assert(LocalSize, "LocalSize cannot be zero");
             mem_state = MEM_STATE::uninitialized;
-            std::memset(static_cast<void *>(&mem_union), 0, sizeof(mem_union));
+            std::memset(reinterpret_cast<void *>(&mem_union), 0, sizeof(mem_union));
             if (that.mem_state == MEM_STATE::uninitialized) return;
             else  {
                 assure_capacity(that.size());
@@ -68,7 +68,7 @@ namespace data_structure {
         optimized_vector(optimized_vector &&that) noexcept {
             static_assert(LocalSize, "LocalSize cannot be zero");
             mem_state = that.mem_state;
-            std::memset(static_cast<void *>(&mem_union), 0, sizeof(mem_union));
+            std::memset(reinterpret_cast<void *>(&mem_union), 0, sizeof(mem_union));
             if (that.mem_state == MEM_STATE::uninitialized) return;
             else if(that.mem_state == MEM_STATE::locally){
                 mark_size(that.size());
@@ -85,7 +85,7 @@ namespace data_structure {
             }
             mem_state = that.mem_state;
             that.mem_state = MEM_STATE::uninitialized;
-            std::memset(static_cast<void *>(&that.mem_union), 0, sizeof(that.mem_union));
+            std::memset(reinterpret_cast<void *>(&that.mem_union), 0, sizeof(that.mem_union));
         }
 
         optimized_vector(std::initializer_list<T> init_list) {
@@ -99,7 +99,7 @@ namespace data_structure {
             if (mem_state == MEM_STATE::uninitialized) return;
             for (auto &value : *this) utils::destroy_at(&value);
             if (mem_state == MEM_STATE::on_heap) {
-                ::operator delete(static_cast<void * >(mem_union.heap_storage.mem_start));
+                ::operator delete(reinterpret_cast<void * >(mem_union.heap_storage.mem_start));
 #ifdef MEMORY_LEAK_TEST
                 FREED += (mem_union.heap_storage.mem_end - mem_union.heap_storage.mem_start) * sizeof(T);
 #endif // MEMORY_LEAK_TEST
@@ -111,7 +111,7 @@ namespace data_structure {
 
         iterator begin() noexcept {
             if(mem_state == MEM_STATE::locally) {
-                return static_cast<T *>(&(mem_union.local_storage.storage));
+                return reinterpret_cast<T *>(&(mem_union.local_storage.storage));
             } else if(mem_state == MEM_STATE::on_heap) {
                 return mem_union.heap_storage.mem_start;
             } else {
@@ -121,7 +121,7 @@ namespace data_structure {
 
         iterator end() noexcept {
             if(mem_state == MEM_STATE::locally) {
-                return static_cast<T *>(&(mem_union.local_storage.storage)) + mem_union.local_storage.usage;
+                return reinterpret_cast<T *>(&(mem_union.local_storage.storage)) + mem_union.local_storage.usage;
             } else if(mem_state == MEM_STATE::on_heap) {
                 return mem_union.heap_storage.mem_usage;
             } else {
@@ -134,7 +134,7 @@ namespace data_structure {
 
         const_iterator cbegin() const {
             if(mem_state == MEM_STATE::locally) {
-                return static_cast<T const *>(&(mem_union.local_storage.storage));
+                return reinterpret_cast<T const *>(&(mem_union.local_storage.storage));
             } else if(mem_state == MEM_STATE::on_heap) {
                 return mem_union.heap_storage.mem_start;
             } else {
@@ -144,7 +144,7 @@ namespace data_structure {
 
         const_iterator cend() const {
             if(mem_state == MEM_STATE::locally) {
-                return static_cast<T const *>(&(mem_union.local_storage.storage)) + mem_union.local_storage.usage;
+                return reinterpret_cast<T const *>(&(mem_union.local_storage.storage)) + mem_union.local_storage.usage;
             } else if(mem_state == MEM_STATE::on_heap) {
                 return mem_union.heap_storage.mem_usage;
             } else {
@@ -169,7 +169,7 @@ namespace data_structure {
             assure_capacity(size() + 1);
             if(mem_state == MEM_STATE::locally) {
                 utils::emplace_construct<T>(
-                        static_cast<T *>(&(mem_union.local_storage.storage)) + (mem_union.local_storage.usage++),
+                        reinterpret_cast<T *>(&(mem_union.local_storage.storage)) + (mem_union.local_storage.usage++),
                         value);
             } else {
                 utils::emplace_construct<T>(mem_union.heap_storage.mem_usage++, value);
@@ -180,7 +180,7 @@ namespace data_structure {
             assure_capacity(size() + 1);
             if (mem_state == MEM_STATE::locally) {
                 utils::emplace_construct<T>(
-                        static_cast<T *>(&(mem_union.local_storage.storage)) + (mem_union.local_storage.usage++),
+                        reinterpret_cast<T *>(&(mem_union.local_storage.storage)) + (mem_union.local_storage.usage++),
                         std::move(value));
             } else {
                 utils::emplace_construct<T>(mem_union.heap_storage.mem_usage++, std::move(value));
@@ -192,7 +192,7 @@ namespace data_structure {
             assure_capacity(size() + 1);
             if (mem_state == MEM_STATE::locally) {
                 utils::emplace_construct<T>(
-                        static_cast<T *>(&(mem_union.local_storage.storage)) + (mem_union.local_storage.usage++),
+                        reinterpret_cast<T *>(&(mem_union.local_storage.storage)) + (mem_union.local_storage.usage++),
                         std::forward<Args>(args)...);
             } else {
                 utils::emplace_construct<T>(mem_union.heap_storage.mem_usage++, std::forward<Args>(args)...);
@@ -216,12 +216,12 @@ namespace data_structure {
             if (mem_state == MEM_STATE::uninitialized) return;
             for (auto &value : *this) utils::destroy_at(&value);
             if (mem_state == MEM_STATE::on_heap) {
-                ::operator delete(static_cast<void * >(mem_union.heap_storage.mem_start));
+                ::operator delete(reinterpret_cast<void * >(mem_union.heap_storage.mem_start));
 #ifdef MEMORY_LEAK_TEST
                 FREED += (mem_union.heap_storage.mem_end - mem_union.heap_storage.mem_start) * sizeof(T);
 #endif // MEMORY_LEAK_TEST
             }
-            std::memset(static_cast<void *>(&mem_union), 0, sizeof(mem_union));
+            std::memset(reinterpret_cast<void *>(&mem_union), 0, sizeof(mem_union));
             mem_state = MEM_STATE::uninitialized;
         }
 
@@ -237,7 +237,7 @@ namespace data_structure {
         }
 
         void empty_fill_local() {
-            std::memset(static_cast<void *>(&mem_union), 0, sizeof(mem_union));
+            std::memset(reinterpret_cast<void *>(&mem_union), 0, sizeof(mem_union));
             mem_state = MEM_STATE::locally;
             mem_union.local_storage.usage = 0;
             mark_size(LocalSize);
@@ -258,7 +258,7 @@ namespace data_structure {
             if(mem_state == MEM_STATE::on_heap) {
                 size_type new_capacity = capacity();
                 while(new_capacity < target) new_capacity <<= 1;
-                auto *mem_start = static_cast<T *>(::operator new(new_capacity * sizeof(value_type)));
+                auto *mem_start = reinterpret_cast<T *>(::operator new(new_capacity * sizeof(value_type)));
 #ifdef MEMORY_LEAK_TEST
                 ALLOCED += new_capacity * sizeof(value_type);
 #endif // MEMORY_LEAK_TEST
@@ -268,8 +268,8 @@ namespace data_structure {
                 for(auto iter = begin(), the_end = end(); iter < the_end; ++iter) {
                     utils::destroy_at<T>(&(*iter));
                 }
-                auto a = static_cast<void* >(mem_union.heap_storage.mem_start);
-                ::operator delete(static_cast<void * >(mem_union.heap_storage.mem_start));
+                auto a = reinterpret_cast<void * >(mem_union.heap_storage.mem_start);
+                ::operator delete(reinterpret_cast<void * >(mem_union.heap_storage.mem_start));
 #ifdef MEMORY_LEAK_TEST
                 FREED += (mem_union.heap_storage.mem_end - mem_union.heap_storage.mem_start) * sizeof(T);
 #endif // MEMORY_LEAK_TEST
@@ -279,7 +279,7 @@ namespace data_structure {
             } else {
                 size_type new_capacity = capacity();
                 while(new_capacity < target) new_capacity <<= 1;
-                auto *mem_start = static_cast<T *>(::operator new(new_capacity * sizeof(value_type)));
+                auto *mem_start = reinterpret_cast<T *>(::operator new(new_capacity * sizeof(value_type)));
 #ifdef MEMORY_LEAK_TEST
                 ALLOCED += new_capacity * sizeof(value_type);
 #endif // MEMORY_LEAK_TEST
@@ -289,7 +289,7 @@ namespace data_structure {
                 for(auto iter = begin(), the_end = end(); iter < the_end; ++iter) {
                     utils::destroy_at<T>(&(*iter));
                 }
-                std::memset(static_cast<void *>(&mem_union), 0, sizeof(mem_union));
+                std::memset(reinterpret_cast<void *>(&mem_union), 0, sizeof(mem_union));
                 mem_union.heap_storage.mem_start = mem_start;
                 mem_union.heap_storage.mem_end = mem_end;
                 mem_union.heap_storage.mem_usage = mem_usage;
