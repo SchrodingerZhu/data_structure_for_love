@@ -170,10 +170,10 @@ namespace data_structure {
                 if (i != bit - 1)
                     u->links[c] = new Path;
                 else u->links[c] = new Leaf;
-                u->links[c]->father = reinterpret_cast<Path *>(u);
+                u->links[c]->father = static_cast<Path *>(u);
                 u = u->links[c];
             }
-            auto m = reinterpret_cast<Leaf *>(u);
+            auto m = static_cast<Leaf *>(u);
             m->value = t;
             m->links[0] = pred;
             m->links[1] = pred->links[1];
@@ -214,7 +214,7 @@ namespace data_structure {
                 if (v->links[!c] || !i) break;
             }
             c = (t >> (bit - i - 1)) & 1;
-            auto p = reinterpret_cast<Path *>(v);
+            auto p = static_cast<Path *>(v);
             p->jump = m[!c];
             p = p->father;
             if (!i) return;
@@ -243,28 +243,28 @@ namespace data_structure {
 
             const_iterator &operator++() {
                 if (leaf) {
-                    leaf = reinterpret_cast<Leaf *>(leaf->links[1]);
+                    leaf = static_cast<Leaf *>(leaf->links[1]);
                 }
                 return *this;
             }
 
             const const_iterator operator++(int) {
                 if (leaf) {
-                    leaf = reinterpret_cast<Leaf *>(leaf->links[1]);
+                    leaf = static_cast<Leaf *>(leaf->links[1]);
                 }
                 return const_iterator{leaf};
             }
 
             const_iterator &operator--() {
                 if (leaf) {
-                    leaf = reinterpret_cast<Leaf *>(leaf->links[0]);
+                    leaf = static_cast<Leaf *>(leaf->links[0]);
                 }
                 return *this;
             }
 
             const const_iterator operator--(int) {
                 if (leaf) {
-                    leaf = reinterpret_cast<Leaf *>(leaf->links[0]);
+                    leaf = static_cast<Leaf *>(leaf->links[0]);
                 }
                 return {leaf};
             }
@@ -281,7 +281,7 @@ namespace data_structure {
         };
 
         const_iterator begin() const {
-            return const_iterator(reinterpret_cast<Leaf *>(dummy.links[1]));
+            return const_iterator(static_cast<Leaf *>(dummy.links[1]));
         }
 
         const_iterator end() const {

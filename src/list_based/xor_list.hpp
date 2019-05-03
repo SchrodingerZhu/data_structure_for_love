@@ -221,7 +221,7 @@ namespace data_structure {
         XorNode<T> *head = nullptr; // Head Pointer
         XorNode<T> *tail = nullptr; // Tail Pointer
         static XorNode<T> *combine(XorNode<T> *a, XorNode<T> *b) {  // XorNode<T>* ^ XorNode<T>*
-            return reinterpret_cast<XorNode<T> *>(reinterpret_cast<ptrdiff_t>(a) ^ reinterpret_cast<ptrdiff_t>(b));
+            return static_cast<XorNode<T> *>(static_cast<ptrdiff_t>(a) ^ static_cast<ptrdiff_t>(b));
         }
         std::size_t _size {};
     public:

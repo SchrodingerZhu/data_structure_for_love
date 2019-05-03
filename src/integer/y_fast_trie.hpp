@@ -64,7 +64,36 @@ namespace data_structure {
         } dummy;
 
         BitHashBase<Node *> *maps[bit + 1]{};
+#ifdef DEBUG
 
+        void display(Node *u, std::string prefix, std::string indent = "") {
+            auto p = dynamic_cast<Leaf *>(u);
+            if (!p) {
+                auto k = dynamic_cast<Leaf *>(u->get_jump());
+                auto m = k ? k->value : -1;
+                std::cout << indent << "Path: " + prefix << ", jump: " << m << std::endl;
+                if (u->links[0]) {
+                    display(u->links[0], prefix + "0", indent + "    ");
+                }
+                if (u->links[1]) {
+                    display(u->links[1], prefix + "1", indent + "    ");
+                }
+            } else {
+                std::cout << indent << "Leaf: " << p->value << std::endl;
+                auto v = p->treap->to_vec();
+                std::cout << indent << "Treap: " << p->value << std::endl << indent;
+                for (auto i : v) {
+                    std::cout << i << " ";
+                }
+                std::cout << std::endl;
+            }
+        }
+
+        void display() {
+            display(root, "");
+        }
+
+#endif
         void x_insert(Int t, YTreap<int> *brand = nullptr) {
             Int i{}, c{};
             Node *u = root;
@@ -86,10 +115,10 @@ namespace data_structure {
                     u->links[c] = new Path;
                 else u->links[c] = new Leaf;
                 maps[i + 1]->put(t >> (bit - i - 1), u->links[c]);
-                u->links[c]->father = reinterpret_cast<Path *>(u);
+                u->links[c]->father = static_cast<Path *>(u);
                 u = u->links[c];
             }
-            auto m = reinterpret_cast<Leaf *>(u);
+            auto m = static_cast<Leaf *>(u);
             m->value = t;
             m->links[0] = pred;
             m->links[1] = pred->links[1];
@@ -106,9 +135,16 @@ namespace data_structure {
             }
         }
 
-        void x_erase(Int t, Node *u) {
+        void x_erase(Int t) {
             Int i{};
             bool c{};
+            Node *u = root;
+            for (; i < bit; ++i) {
+                c = (t >> (bit - i - 1)) & 1;
+                if (u->links[c] == nullptr) return;
+                u = u->links[c];
+            }
+
             u->links[0]->links[1] = u->links[1];
             u->links[1]->links[0] = u->links[0];
             Node *m[2];
@@ -125,15 +161,15 @@ namespace data_structure {
                 if (v->links[!c] || !i) break;
             }
             c = (t >> (bit - i - 1)) & 1;
-            auto p = reinterpret_cast<Path *>(v);
-            p->jump = m[!c];
+            auto p = static_cast<Path *>(v);
+            p->jump = p->links[0] ? m[0] : m[1];
             p = p->father;
             if (!i) return;
             n -= 1;
             for (i -= 1; i >= 0; i -= 1) {
                 c = (t >> (bit - i - 1)) & 1;
                 if (p->jump == u) {
-                    p->jump = m[!c];
+                    p->jump = p->links[0] ? m[0] : m[1];
                 }
                 p = p->father;
                 if (!i) break;
@@ -152,11 +188,11 @@ namespace data_structure {
                     l = i;
                 }
             }
-            if (l == bit) return reinterpret_cast<Leaf *>(u);
+            if (l == bit) return static_cast<Leaf *>(u);
             Node *pred = (((t >> (bit - l - 1)) & 1) == 1)
                          ? u->get_jump() : u->get_jump()->links[0];
             if (pred->links[1] == &dummy) return nullptr;
-            else return reinterpret_cast<Leaf *>(pred->links[1]);
+            else return static_cast<Leaf *>(pred->links[1]);
         }
 
     public:
@@ -221,7 +257,7 @@ namespace data_structure {
 
             if (tree->insert(t)) {
                 n++;
-                if (top != t && (YTreap<Int>::generator() % bit) == 0) {
+                if (top != t && YTreap<Int>::generator() % bit == 0) {
                     auto p = new YTreap<Int>{tree->split(t)};
                     x_insert(t, p);
                 }
@@ -234,8 +270,8 @@ namespace data_structure {
             if (leaf) {
                 auto q = leaf->treap->pred(t);
                 if (q) return q;
-                else if (reinterpret_cast<Leaf *>(leaf->links[0])->treap) {
-                    return reinterpret_cast<Leaf *>(leaf->links[0])->treap->max();
+                else if (static_cast<Leaf *>(leaf->links[0])->treap) {
+                    return static_cast<Leaf *>(leaf->links[0])->treap->max();
                 }
             }
             return std::nullopt;
@@ -246,8 +282,8 @@ namespace data_structure {
             if (leaf) {
                 auto q = leaf->treap->succ(t);
                 if (q) return q;
-                else if (reinterpret_cast<Leaf *>(leaf->links[1])->treap) {
-                    return reinterpret_cast<Leaf *>(leaf->links[1])->treap->min();
+                else if (static_cast<Leaf *>(leaf->links[1])->treap) {
+                    return static_cast<Leaf *>(leaf->links[1])->treap->min();
                 }
             }
             return std::nullopt;
@@ -256,14 +292,14 @@ namespace data_structure {
         std::optional<Int> max() const override {
             auto p = dummy.links[0];
             if (p != &dummy) {
-                if (!reinterpret_cast<Leaf *>(p)->treap->root) p = p->links[0];
-                return reinterpret_cast<Leaf *>(p)->treap->max();
+                if (!static_cast<Leaf *>(p)->treap->root) p = p->links[0];
+                return static_cast<Leaf *>(p)->treap->max();
             }
             return std::nullopt;
         }
 
         std::optional<Int> min() const override {
-            if (dummy.links[1] != &dummy) return reinterpret_cast<Leaf *>(dummy.links[1])->treap->min();
+            if (dummy.links[1] != &dummy) return static_cast<Leaf *>(dummy.links[1])->treap->min();
             else return std::nullopt;
         }
 
@@ -275,8 +311,8 @@ namespace data_structure {
                 n--;
             }
             if (leaf->value == t && t != top) {
-                reinterpret_cast<Leaf *>(leaf->links[1])->treap->absorb_smaller(*leaf->treap);
-                x_erase(t, leaf);
+                static_cast<Leaf *>(leaf->links[1])->treap->absorb_smaller(*leaf->treap);
+                x_erase(t);
             }
 
         }
@@ -300,8 +336,9 @@ namespace data_structure {
                 if (leaf) {
                     node = YTreap<Int>::succ(node);
                     if (!node) {
-                        leaf = reinterpret_cast<Leaf *>(leaf->links[1]);
+                        leaf = static_cast<Leaf *>(leaf->links[1]);
                         if (leaf && leaf->treap) node = leaf->treap->min_node(leaf->treap->root);
+                        else node = nullptr;
                     }
                 }
                 return *this;
@@ -310,17 +347,22 @@ namespace data_structure {
             const const_iterator operator++(int) {
                 if (leaf) {
                     node = YTreap<Int>::succ(node);
-                    if (!node) leaf = reinterpret_cast<Leaf *>(leaf->links[1]);
-                    if (leaf && leaf->treap) node = leaf->treap->min_node(leaf->treap->root);
+                    if (!node) {
+                        leaf = static_cast<Leaf *>(leaf->links[1]);
+                        if (leaf && leaf->treap) node = leaf->treap->min_node(leaf->treap->root);
+                    }
+
                 }
-                return *this;
+                return const_iterator(leaf, node);
             }
 
             const_iterator &operator--() {
                 if (leaf) {
                     node = YTreap<Int>::pred(node);
-                    if (!node) leaf = reinterpret_cast<Leaf *>(leaf->links[0]);
-                    if (leaf && leaf->treap) node = leaf->treap->max_node(leaf->treap->root);
+                    if (!node) {
+                        leaf = static_cast<Leaf *>(leaf->links[0]);
+                        if (leaf && leaf->treap) node = leaf->treap->max_node(leaf->treap->root);
+                    }
                 }
                 return *this;
             }
@@ -328,10 +370,12 @@ namespace data_structure {
             const const_iterator operator--(int) {
                 if (leaf) {
                     node = YTreap<Int>::pred(node);
-                    if (!node) leaf = reinterpret_cast<Leaf *>(leaf->links[0]);
-                    if (leaf && leaf->treap) node = leaf->treap->max_node(leaf->treap->root);
+                    if (!node) {
+                        leaf = static_cast<Leaf *>(leaf->links[0]);
+                        if (leaf && leaf->treap) node = leaf->treap->max_node(leaf->treap->root);
+                    }
                 }
-                return *this;
+                return const_iterator(leaf, node);
             }
 
             bool operator==(const const_iterator &that) const {
@@ -347,7 +391,7 @@ namespace data_structure {
 
         const_iterator begin() const {
             if (!n) end();
-            return const_iterator(reinterpret_cast<Leaf *>(dummy.links[1]));
+            return const_iterator(static_cast<Leaf *>(dummy.links[1]));
         }
 
         const_iterator end() const {
