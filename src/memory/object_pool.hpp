@@ -78,7 +78,7 @@ namespace data_structure {
                 current_address += t;
                 return current_address - t;
             } else {
-                pool.push_back(reinterpret_cast<T *>(::operator new(sizeof(T) * t)));
+                pool.push_back(static_cast<T *>(::operator new(sizeof(T) * t)));
                 return pool.back();
             }
         }
@@ -113,7 +113,7 @@ namespace data_structure {
 
         ~ObjectPool() {
             for(auto i : pool) {
-                ::operator delete(reinterpret_cast<void *>(i), sizeof(T) * ChunkSize);
+                ::operator delete(static_cast<void *>(i), sizeof(T) * ChunkSize);
             }
         }
     private:
@@ -121,7 +121,7 @@ namespace data_structure {
         PtrContainer pool{};
         PtrContainer recycle_list {};
         void alloc_chunk() {
-            pool.push_back(reinterpret_cast<T *>(::operator new(sizeof(T) * ChunkSize)));
+            pool.push_back(static_cast<T *>(::operator new(sizeof(T) * ChunkSize)));
             chunk_end = current_address = pool.back();
             chunk_end += ChunkSize;
         }
