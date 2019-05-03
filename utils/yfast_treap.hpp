@@ -235,8 +235,10 @@ namespace data_structure::utils {
             YTreap another;
             another.root = s.children[left];
             if (another.root) another.root->father = nullptr;
+#ifdef DEBUG
             recount(root);
             another.recount(another.root);
+#endif //DEBUG
             return another;
         }
 

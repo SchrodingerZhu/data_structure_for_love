@@ -1,7 +1,7 @@
 //
 // Created by schrodinger on 19-4-18.
 //
-#define DEBUG
+
 
 #include <y_fast_trie.hpp>
 #include <van_emde_boas.hpp>
