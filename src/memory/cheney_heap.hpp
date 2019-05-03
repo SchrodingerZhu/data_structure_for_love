@@ -41,7 +41,7 @@ namespace data_structure {
         std::unordered_set<Object *> roots {};
         explicit CheneyHeap(size_t heap_size = 5000000) {
             this->heap_size = heap_size;
-            from = free = reinterpret_cast<char*>(::operator new(heap_size << 1));
+            from = free = static_cast<char *>(::operator new(heap_size << 1));
             to = from + heap_size;
         }
         ~CheneyHeap() {
@@ -90,7 +90,7 @@ namespace data_structure {
         void grow(size_t least) {
             while(heap_size <= least) heap_size <<= 3;
             auto temp = from < to ? from : to;
-            to = reinterpret_cast<char*>(::operator new(heap_size << 1));
+            to = static_cast<char *>(::operator new(heap_size << 1));
             garbage_collect();
             to = from + heap_size;
             delete temp;
@@ -108,7 +108,7 @@ namespace data_structure {
     template<class T, class ...Tn,  size_t Size>
     constexpr void CheneyHeap::__move(std::array<void *, Size> &from, std::array<void *, Size> &to, size_t position) {
         to[position] = ::new (free) typename T::type(std::move(
-                *reinterpret_cast<typename T::type*>(from[position])));
+                *static_cast<typename T::type *>(from[position])));
         free = free + sizeof(typename T::type);
         __move<Tn...>(from, to, position + 1);
     }
@@ -143,7 +143,7 @@ namespace data_structure {
             return heap->move_object(this);
         }
         ~SingleObject() override {
-            utils::destroy_at(reinterpret_cast<T *>(field));
+            utils::destroy_at(static_cast<T *>(field));
         }
     };
 
@@ -176,21 +176,21 @@ namespace data_structure {
         if(free + object_size<T>() - from > heap_size) {
             grow(free + object_size<T>() - from);
         }
-        auto ptr = reinterpret_cast<SingleObject<T> *>(free);
+        auto ptr = static_cast<SingleObject<T> *>(free);
         active.insert(ptr);
         ::new(ptr) SingleObject<T>;
         ptr->size = object_size<T>();
         ptr->heap = this;
         ptr->header = sizeof(Object);
         ptr->field = free + sizeof(Object);
-        ::new (reinterpret_cast<T *>(ptr->field)) T (std::forward<Args>(args)...);
+        ::new(static_cast<T *>(ptr->field)) T(std::forward<Args>(args)...);
         free = free + object_size<T>();
         return ptr;
     }
 
     template<typename T>
     CheneyHeap::SingleObject<T> *CheneyHeap::move_object(SingleObject<T>* from) { /// @attention: must move following the order
-        auto to = reinterpret_cast<SingleObject<T> *>(free);
+        auto to = static_cast<SingleObject<T> *>(free);
         copied.insert(to);
         ::new(to) SingleObject<T>;
         to->heap = this;
@@ -203,7 +203,7 @@ namespace data_structure {
             t->object = to;
             t= t->next;
         }
-        ::new (reinterpret_cast<T *>(to->field)) T (std::move(*reinterpret_cast<T *>(from->field)));
+        ::new(static_cast<T *>(to->field)) T(std::move(*static_cast<T *>(from->field)));
         to->pointers = from->pointers;
         free = free + object_size<T>();
         return to;
@@ -216,7 +216,7 @@ namespace data_structure {
     CheneyHeap::Collectable<T, Tn...> *
     CheneyHeap::move_collectable(U *from) {
         std::array<void*, utils::Count<T, Tn...>::count> temp{};
-        auto to = reinterpret_cast<decltype(from)>(free);
+        auto to = static_cast<decltype(from)>(free);
         copied.insert(to);
         ::new (to) Collectable<T, Tn...>();
         auto field = to->field = free = free + sizeof(Collectable<T, Tn...>);
@@ -357,10 +357,10 @@ namespace data_structure {
 
         T& operator*() {
             if(std::is_base_of_v<Object, T>) {
-                auto x = reinterpret_cast<T *>(this->object);
+                auto x = static_cast<T *>(this->object);
                 return *x;
             } else {
-                auto x = reinterpret_cast<T *>(this->object->field);
+                auto x = static_cast<T *>(this->object->field);
                 return *x;
             }
         }
@@ -391,7 +391,7 @@ namespace data_structure {
         if(free + collectable_size<T, Tn...>() - from > heap_size) {
             grow(free + collectable_size<T, Tn...>() * utils::Count<T, Tn...>::count - from);
         }
-        auto ptr = reinterpret_cast<Collectable<T, Tn...> *>(free);
+        auto ptr = static_cast<Collectable<T, Tn...> *>(free);
         active.insert(ptr);
         std::array<void *, utils::Count<T, Tn...>::count> temp{};
         ::new (ptr) Collectable<T, Tn...>();
@@ -429,8 +429,8 @@ namespace data_structure {
         template <std::size_t N, typename U, typename ...Un>
         void _move_children() {
             if(U::is_ptr) {
-                auto c_ptr = reinterpret_cast<heap_pointer *>(fields[N]);
-                if(c_ptr->object && !heap->in_new_range(reinterpret_cast<char *>(c_ptr->object))) {
+                auto c_ptr = static_cast<heap_pointer *>(fields[N]);
+                if (c_ptr->object && !heap->in_new_range(static_cast<char *>(c_ptr->object))) {
                     c_ptr->object->_move();
                 }
             }
@@ -444,7 +444,7 @@ namespace data_structure {
 
         template <std::size_t N, typename U, typename ...Un>
         void _self_destroy() {
-            auto c_ptr = reinterpret_cast<typename U::type *>(fields[N]);
+            auto c_ptr = static_cast<typename U::type *>(fields[N]);
             utils::destroy_at(c_ptr);
             _self_destroy<N + 1, Un...>();
         }
@@ -462,7 +462,7 @@ namespace data_structure {
             std::cout << "address: " << fields[N] << std::endl;
             std::cout << "size: " << sizeof(typename U::type) << std::endl;
             if(U::is_ptr) {
-                auto c_ptr = reinterpret_cast<heap_pointer *>(fields[N]);
+                auto c_ptr = static_cast<heap_pointer *>(fields[N]);
                 std::cout << "to: " << c_ptr->object << std::endl;
                 std::cout << "[pointer]" << std::endl;
                 if(c_ptr->object) {
@@ -487,7 +487,7 @@ namespace data_structure {
         }
         template <size_t N>
         auto& get() {
-            return *reinterpret_cast<typename utils::TypeHelper<N, T, Tn...>::type::type*>(fields[N]);
+            return *static_cast<typename utils::TypeHelper<N, T, Tn...>::type::type *>(fields[N]);
         }
 
         template <typename U, typename ...Args>
@@ -508,16 +508,16 @@ namespace data_structure {
     template<typename T, typename... Tn>
     template<typename U, typename... Args>
     void CheneyHeap::Collectable<T, Tn...>::construct_self_at(remote_ptr<U> &address, Args &&... args) {
-        auto object = reinterpret_cast<U *>(heap->make_collectable<U, T, Tn...>(std::forward<Args>(args)...));
-        address = reinterpret_cast<Object *>(object);
+        auto object = static_cast<U *>(heap->make_collectable<U, T, Tn...>(std::forward<Args>(args)...));
+        address = static_cast<Object *>(object);
     }
 
     template<typename T, typename... Tn>
     template<class U, typename... Args>
     CheneyHeap::remote_ptr<U> CheneyHeap::Collectable<T, Tn...>::generate(CheneyHeap & heap, Args &&... args) {
         auto ptr = heap.make_collectable<U, T, Tn...>(std::forward<Args>(args)...);
-        heap.roots.insert(reinterpret_cast<U *>(ptr));
-        return remote_ptr<U>(reinterpret_cast<U *>(ptr));
+        heap.roots.insert(static_cast<U *>(ptr));
+        return remote_ptr<U>(static_cast<U *>(ptr));
     }
 
     void CheneyHeap::garbage_collect() {
@@ -530,7 +530,7 @@ namespace data_structure {
         }
         roots = std::move(new_roots);
         while(scan != free) {
-            auto t = reinterpret_cast<Object *>(scan);
+            auto t = static_cast<Object *>(scan);
             auto p = utils::as_pointer_of<CollectableBase>(t);
             if(p) p->move_children();
             scan = scan + t->size;
@@ -565,14 +565,14 @@ namespace data_structure {
 
                 //std::cout << "This is a collectable!" << std::endl;
 //        if(ptrs.count(t)) {
-//            auto m = reinterpret_cast<heap_pointer *>(t->field);
+//            auto m = static_cast<heap_pointer *>(t->field);
 //            std::cout << "[pointer]"  << std::endl;
 //            std::cout << "to: " << m->object << std::endl;
 //            if(m->object) wander(m->object);
 //        }
                 if(utils::as_pointer_of<CollectableBase>(t)) {
                     std::cout << "[collectable]"  << std::endl;
-                    reinterpret_cast<CollectableBase *>(t)->show_children();
+                    static_cast<CollectableBase *>(t)->show_children();
                 } else {
                     std::cout << "[single object]"  << std::endl;
                     std::cout << "------------------------------" << std::endl;

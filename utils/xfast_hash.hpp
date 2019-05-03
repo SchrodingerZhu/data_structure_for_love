@@ -70,8 +70,8 @@ namespace data_structure::utils {
     template<class T, size_t current>
     struct _Builder : _Builder<T, current - 1> {
         explicit _Builder(BitHashBase<T> **addr) : _Builder<T, current - 1>(addr - 1) {
-            *addr = reinterpret_cast<BitHashBase<T> *>(::operator new(sizeof(BitHash<T, current>)));
-            emplace_construct<BitHash<T, current>>(reinterpret_cast<BitHash<T, current> *>(*addr));
+            *addr = static_cast<BitHashBase<T> *>(::operator new(sizeof(BitHash<T, current>)));
+            emplace_construct<BitHash<T, current>>(static_cast<BitHash<T, current> *>(*addr));
         }
 
     };
