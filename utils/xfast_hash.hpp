@@ -15,6 +15,8 @@ namespace data_structure::utils {
         virtual T get(size_t index) = 0;
 
         virtual void put(size_t index, T m) = 0;
+
+        virtual ~BitHashBase() = default;
     };
 
     template<class T, size_t N, bool = true>
@@ -60,7 +62,7 @@ namespace data_structure::utils {
             mem[mask]->put(shifted, m);
         }
 
-        ~BitHashImpl() {
+        ~BitHashImpl() override {
             for (auto i: mem) { if (i) delete i; }
         }
     };

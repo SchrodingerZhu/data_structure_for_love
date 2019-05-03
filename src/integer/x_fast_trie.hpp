@@ -95,7 +95,12 @@ namespace data_structure {
 
         ~XFastTrie() {
             if (root) delete (root);
-            for (auto i: maps) { if (i) ::operator delete(i); }
+            for (auto i: maps) {
+                if (i) {
+                    destroy_at(i);
+                    ::operator delete(i);
+                }
+            }
         }
 
         bool contains(Int t) const override {
@@ -236,6 +241,7 @@ namespace data_structure {
                 v = v->father;
                 delete v->links[c];
                 maps[i + 1]->put(t >> (bit - i - 1), nullptr);
+
                 v->links[c] = nullptr;
                 if (v->links[!c] || !i) break;
             }
