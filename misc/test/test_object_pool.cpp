@@ -28,6 +28,11 @@ int main() {
     using namespace std;
     using namespace data_structure;
     //auto mem_pool = data_structure::ObjectPool<int> {};
+    std::vector<std::string, ObjectPool<string>> test_my;
+    test_my.resize(100, "21355");
+    for (auto &i : test_my) {
+        assert(i == "21355");
+    }
     std::vector<int> test_data {};
     std::vector<int *> test_pool_raw {};
     auto mem_pool = data_structure::ObjectPool<int> {};
