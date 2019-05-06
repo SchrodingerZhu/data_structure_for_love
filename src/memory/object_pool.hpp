@@ -19,9 +19,27 @@ namespace data_structure {
     template<typename T, std::size_t ChunkSize = 1000,
             typename PtrContainer = std::vector<T *>>
     class ObjectPool {
+
     public:
-        using size_type = std::size_t;
-        using differece_type = std::ptrdiff_t;
+    public:
+        typedef size_t size_type;
+        typedef ptrdiff_t difference_type;
+        typedef T *pointer;
+        typedef const T *const_pointer;
+        typedef T &reference;
+        typedef const T &const_reference;
+        typedef T value_type;
+
+        template<typename U>
+        struct rebind {
+            typedef ObjectPool<U> other;
+        };
+
+#if __cplusplus >= 201103L
+        typedef std::true_type propagate_on_container_move_assignment;
+
+        typedef std::true_type is_always_equal;
+#endif
 
         ObjectPool() = default;
         ObjectPool (ObjectPool const &that) = delete;
@@ -126,6 +144,12 @@ namespace data_structure {
             chunk_end += ChunkSize;
         }
     };
+
+    template<class T, class U>
+    bool operator==(const ObjectPool<T> &, const ObjectPool<U> &) { return true; }
+
+    template<class T, class U>
+    bool operator!=(const ObjectPool<T> &, const ObjectPool<U> &) { return false; }
 
 }
 
