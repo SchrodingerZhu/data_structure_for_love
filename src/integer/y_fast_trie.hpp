@@ -15,7 +15,6 @@
 
 namespace data_structure {
     using namespace utils;
-
     template<typename Int, size_t bit = max_bit(std::numeric_limits<Int>::max())>
     struct YFastTrie : IntegerSetBase<Int> {
         std::size_t n = 0;
