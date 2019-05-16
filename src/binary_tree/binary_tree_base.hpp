@@ -79,10 +79,8 @@ namespace data_structure {
         explicit WeightedBSTNode(Args &&...args) : x(std::forward<Args>(args)...) {}
 
         virtual void update() {
-            weight = 1 + this->children[LEFT] ? static_cast<WeightedBSTNode *>(this->children[LEFT])->weight : 0 +
-                                                                                                               this->children[RIGHT]
-                                                                                                               ? static_cast<WeightedBSTNode *>(this->children[RIGHT])->weight
-                                                                                                               : 0;
+            weight = 1 + (this->children[LEFT] ? static_cast<WeightedBSTNode *>(this->children[LEFT])->weight : 0) +
+                     (this->children[RIGHT] ? static_cast<WeightedBSTNode *>(this->children[RIGHT])->weight : 0);
         }
     };
 
