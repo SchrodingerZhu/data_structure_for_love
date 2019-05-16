@@ -23,6 +23,52 @@ namespace data_structure {
         Node *parent = nullptr, *children[2] = {nullptr, nullptr};
 
         virtual ~Node() = default;
+
+
+        inline void set_left(Node *n) noexcept {
+            children[LEFT] = n;
+            if (n) n->parent = this;
+        }
+
+        inline void set_right(Node *n) noexcept {
+            children[RIGHT] = n;
+            if (n) n->parent = this;
+        }
+
+        inline void set_children(Node *n1, Node *n2) noexcept {
+            set_left(n1);
+            set_right(n2);
+        }
+
+        inline void replace_with(Node *y) noexcept {
+            replace(parent, this, y);
+        }
+
+        inline Node *sibling() noexcept {
+            return parent->children[parent->children[LEFT] == this];
+        }
+
+        inline Node *uncle() noexcept {
+            return parent->sibling();
+        }
+
+        inline Node *grandparent() noexcept {
+            return parent->parent;
+        }
+
+
+        inline static Node *replace(Node *parent, Node *x, Node *y) noexcept {
+            if (parent == nullptr) {
+                if (y) y->parent = nullptr;
+            } else if (parent->children[LEFT] == x) {
+                parent->set_left(y);
+            } else {
+                parent->set_right(y);
+            }
+            if (x) x->parent = nullptr;
+            return y;
+        }
+
     };
 
 
@@ -68,6 +114,7 @@ namespace data_structure {
         explicit BSTNode(Args ...args) : x(std::forward<Args>(args)...) {}
 
         virtual void update() {}
+
     };
 
     template<class T>
