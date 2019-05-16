@@ -23,7 +23,7 @@ namespace data_structure::utils {
         }
 
         void destroy(Node *t) {
-            delete (t);
+            delete t;
         }
 
         void absorb(TrivialFactory &that) {/*Nothing*/}

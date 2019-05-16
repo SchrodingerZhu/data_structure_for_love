@@ -1,20 +1,21 @@
 //
 // Created by schrodinger on 3/4/19.
 //
-#include <binary_tree_base.hpp>
+#include <splay.hpp>
 #include <static_random_helper.hpp>
 #include <set>
 #include <iostream>
 #include <algorithm>
+
 using namespace std;
 using namespace data_structure;
 using namespace data_structure::utils;
 #define RANGE 100000
 RandomIntGen<int> intGen{};
 
-int main(){
+int main() {
     {
-        BSTree<int> test;
+        Splay<int> test;
         set<int> test_set;
         for (int i = 0; i < RANGE; ++i) {
             auto m = intGen();
@@ -36,7 +37,7 @@ int main(){
     }
 
     {
-        BSTree<int> test;
+        Splay<int> test;
         set<int> test_set;
         for (int i = 0; i < RANGE; ++i) {
             auto m = intGen();

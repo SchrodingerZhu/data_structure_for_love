@@ -20,7 +20,9 @@ namespace data_structure {
 
 
     struct Node {
-        Node *parent = nullptr, *children[2] = {};
+        Node *parent = nullptr, *children[2] = {nullptr, nullptr};
+
+        virtual ~Node() = default;
     };
 
 
@@ -51,7 +53,9 @@ namespace data_structure {
             root = nullptr;
         }
     public:
-        ~BinTree() {
+        virtual ~BinTree() {
+//            destroy(root);
+//            root = nullptr;
             clear();
         }
     };
@@ -155,6 +159,7 @@ namespace data_structure {
         iterator begin();
 
         iterator end();
+
     };
 
     template<class T, class Node, class Compare, class Factory>
@@ -179,9 +184,9 @@ namespace data_structure {
 
         void go_up() { node = static_cast<Node *>(node->parent); }
 
-        void go_left() { node = static_cast<Node *>(node->left); }
+        void go_left() { node = static_cast<Node *>(node->children[LEFT]); }
 
-        void go_right() { node = static_cast<Node *>(node->right); }
+        void go_right() { node = static_cast<Node *>(node->children[RIGHT]); }
 
         void go_min() { node = min_node(node); }
 
@@ -192,6 +197,8 @@ namespace data_structure {
         void go_pred() { node = succ_node(node); }
 
         bool valid() { return node; }
+
+
     };
 
     template<class T, class Node, class Compare, class Factory>
@@ -356,7 +363,12 @@ namespace data_structure {
 
     template<class T, class Node, class Compare, class Factory>
     bool BSTree<T, Node, Compare, Factory>::insert(const T &x) {
-        return insert(this->factory.construct(x));
+        auto p = find_last(x);
+        if (!p || compare(x, p->x) != Eq) {
+            adopt(p, this->factory.construct(x));
+            return true;
+        }
+        return false;
     }
 
     template<class T, class Node, class Compare, class Factory>
