@@ -40,8 +40,8 @@ namespace data_structure {
             set_right(n2);
         }
 
-        inline void replace_with(Node *y) noexcept {
-            replace(parent, this, y);
+        inline Node *replace_with(Node *y) noexcept {
+            return replace(parent, this, y);
         }
 
         inline Node *sibling() noexcept {
