@@ -14,258 +14,487 @@
 // merge
 //
 namespace data_structure {
-
-    template<class T>
-    struct BinaryTreeNode {
-        BinaryTreeNode *father = nullptr,
-                *left = nullptr,
-                *right = nullptr;
-        const T key;
-        using info_type = const T;
-
-        template<typename ...Args>
-        explicit BinaryTreeNode(Args &&...args) : key(std::forward<Args>(args)...) {}
-
-        info_type &get() { return key; }
+    enum Direction {
+        LEFT = 0, RIGHT = 1
     };
 
-    template<class T>
-    struct WeightedNode : BinaryTreeNode<T> {
-        std::size_t weight = 0;
 
-        template<typename ...Args>
-        explicit WeightedNode(Args &&...args) : BinaryTreeNode<T>(std::forward<Args>(args)...) {}
+    struct Node {
+        Node *parent = nullptr, *children[2] = {};
     };
 
-    enum BinaryTreeOperation {
-        RotateLeft,
-        RotateRight,
-        Insert,
-        Delete,
-        Merge,
-        Split,
-        Unlink
-    };
 
-    template<class Node>
-    struct Update {
-        virtual void update(Node *u) {};
-    };
-
-    template<class Node>
-    struct WeightedUpdate : public Update<Node> {
-        void update(Node *u) override {
-            u->weight = (u->left ? u->left->weight : 0) +
-                        (u->right ? u->right->weight : 0) + 1;
-        };
-    };
-
-    template<typename T, class Node, class Updater, class Factory, class Compare = std::less<T>>
-    class BinaryTree {
+    template<class TreeNode, class Factory>
+    class BinTree {
+    protected:
+        TreeNode *root = nullptr;
         Factory factory{};
-        Node *root = nullptr;
-        Updater updater{};
-        Compare compare{};
-        using info_type = typename Node::info_type;
 
-        Node *find_node(Node *from, const T &key) {
-            while (from) {
-                if (from->key == key) return from;
-                if (compare(key, from->key)) {
-                    from = from->left;
+        virtual void clear() {
+            Node *u = root, *prev = nullptr, *next;
+            while (u != nullptr) {
+                if (prev == u->parent) {
+                    if (u->children[LEFT] != nullptr) next = u->children[LEFT];
+                    else if (u->children[RIGHT] != nullptr) next = u->children[RIGHT];
+                    else next = u->parent;
+                } else if (prev == u->children[LEFT]) {
+                    if (u->children[RIGHT] != nullptr) next = u->children[RIGHT];
+                    else next = u->parent;
                 } else {
-                    from = from->right;
+                    next = u->parent;
                 }
+                prev = u;
+                if (next == u->parent)
+                    factory.destroy(static_cast<TreeNode *>(u));
+                u = next;
             }
-            return from;
+            root = nullptr;
         }
+    public:
+        ~BinTree() {
+            clear();
+        }
+    };
 
-        void bottom_up_update(Node *from) {
-            while (from) {
-                updater.update(from);
-                from = from->father;
-            }
-        }
+    template<class T>
+    struct BSTNode : public Node {
+        T x;
 
-        virtual void unlink(Node *u) {
-            Node *s, *p;
-            if (u->left) {
-                s = u->left;
-            } else {
-                s = u->right;
-            }
-            if (u == root) {
-                root = s;
-                p = nullptr;
-            } else {
-                p = u->father;
-                if (p->left == u) {
-                    p->left = s;
-                } else {
-                    p->right = s;
-                }
-            }
-            if (s) { s->father = p; }
-            bottom_up_update(p);
-        }
+        template<typename ...Args>
+        explicit BSTNode(Args ...args) : x(std::forward<Args>(args)...) {}
 
-        virtual Node *insert_node(Node *node) {
-            Node **p = &root, *f = nullptr;
-            while (*p) {
-                f = *p;
-                if (compare(node->key, (*p)->key)) {
-                    p = &(*p)->left;
-                } else {
-                    p = &(*p)->right;
-                }
-            }
-            *p = node;
-            node->father = f;
-            bottom_up_update(node);
-            return node;
-        }
+        virtual void update() {}
+    };
 
-        static Node *min_node(Node *node) {
-            while (node && node->left) {
-                node = node->left;
-            }
-            return node;
-        }
+    template<class T>
+    struct WeightedBSTNode : public Node {
+        T x;
+        size_t weight = 0;
 
-        static Node *max_node(Node *node) {
-            while (node && node->right) {
-                node = node->right;
-            }
-            return node;
-        }
+        template<typename ...Args>
+        explicit WeightedBSTNode(Args &&...args) : x(std::forward<Args>(args)...) {}
 
-        static Node *succ_node(Node *n) {
-            if (!n) return nullptr;
-            if (n->left) return max_node(n->left);
-            else {
-                while (n->father && n != n->father->right) {
-                    n = n->father;
-                }
-                return n->father;
-            }
+        virtual void update() {
+            weight = 1 + this->children[LEFT] ? static_cast<WeightedBSTNode *>(this->children[LEFT])->weight : 0 +
+                                                                                                               this->children[RIGHT]
+                                                                                                               ? static_cast<WeightedBSTNode *>(this->children[RIGHT])->weight
+                                                                                                               : 0;
         }
+    };
 
-        static Node *pred_node(Node *n) {
-            if (!n) return nullptr;
-            if (n->right) return min_node(n->right);
-            else {
-                while (n->father && n != n->father->left) {
-                    n = n->father;
-                }
-                return n->father;
-            }
+
+    enum Relation {
+        Eq, Less, Greater
+    };
+
+    template<class T>
+    struct DefaultCompare {
+        constexpr Relation operator()(const T &a, const T &b) const noexcept {
+            if (a == b) return Eq;
+            else if (a < b) return Less;
+            else return Greater;
         }
+    };
+
+    template<class T, class Node = BSTNode<T>,
+            class Compare = DefaultCompare<T>, class Factory = utils::TrivialFactory<Node>>
+    class BSTree : public BinTree<Node, Factory> {
+    protected:
+        constexpr static Compare compare{};
+        size_t n = 0;
+
+        virtual Node *find_last(const T &x);
+
+        virtual bool adopt(Node *p, Node *u);
+
+        virtual void splice(Node *u);
+
+        virtual void erase(Node *u);
+
+        virtual void rotate(Node *u, Direction direction);
+
+        virtual bool insert(Node *u);
+
+        virtual void bottom_up_update(Node *u);
+
+        static Node *min_node(Node *u);
+
+        static Node *max_node(Node *u);
+
+        static Node *pred_node(Node *u);
+
+        static Node *succ_node(Node *u);
 
     public:
-        class iterator {
-            Node *node;
-        public:
-            explicit iterator(Node *node) : node(node) {}
+        class walker;
 
-            info_type &operator*() { return node->get(); }
+        class iterator;
 
-            info_type *operator->() { return &node->get(); }
+        virtual bool insert(const T &x);
 
-            iterator &operator++() { return node = succ_node(node), *this; }
+        virtual bool erase(const T &x);
 
-            const iterator operator++(int) {
-                iterator p = *this;
-                node = succ_node(node);
-                return p;
-            }
+        virtual walker find(const T &x);
 
-            iterator &operator--() { return node = pred_node(node), *this; }
+        virtual size_t size();
 
-            const iterator operator--(int) {
-                iterator p = *this;
-                node = pred_node(node);
-                return p;
-            }
+        virtual void clear();
 
-        };
+        virtual walker min();
 
-        virtual iterator insert(const T &t) {
-            return iterator{insert_node(factory.construct(t))};
-        }
+        virtual walker max();
 
-        template<typename ...Args>
-        iterator emplace(Args &&... args) {
-            return iterator{insert_node(factory.construct(std::forward<Args>(args)...))};
+        virtual walker top();
 
-        }
+        virtual walker pred(const T &x);
 
+        virtual walker succ(const T &x);
 
-        virtual bool contains(const T &key) { return find_node(root, key); }
+        virtual bool contains(const T &x);
 
-        virtual void erase(const T &key) {
-            Node *node = find_node(root, key);
-            if (!node->left || !node->right) {
-                unlink(node);
-                factory.destroy(node);
-            } else {
-                Node *w = node->right;
-                while (w->left) {
-                    w = w->left;
-                }
-                // father
-                Node *p = w->father;
-                w->father = node->father;
-                node->father = p;
-                if (w->father) {
-                    if (w->father->left == node) {
-                        w->father->left = w;
-                    } else {
-                        w->father->right = w;
-                    }
-                } else {
-                    root = w;
-                }
-                if (node->father) {
-                    if (node->father->left == w) {
-                        node->father->left = node;
-                    } else {
-                        node->father->right = node;
-                    }
-                }
+        iterator begin();
 
-                p = node->left;
-                node->left = w->left;
-                w->left = p;
-
-                if (node->left) {
-                    node->left->father = node;
-                }
-                if (w->left) {
-                    w->left->father = w;
-                }
-
-                p = node->right;
-                node->right = w->right;
-                w->right = p;
-
-                if (node->right) {
-                    node->right->father = node;
-                }
-                if (w->right) {
-                    w->right->father = w;
-                }
-                unlink(node);
-                factory.destroy(node);
-            }
-        }
-
-        virtual info_type &operator[](const T &key) { return find_node(root, key)->get(); }
-
+        iterator end();
     };
 
-    template<class T>
-    using TrivialBinaryTree = BinaryTree<T, BinaryTreeNode<T>,
-            Update<BinaryTreeNode<T>>, utils::TrivialFactory<BinaryTreeNode<T>>>;
+    template<class T, class Node, class Compare, class Factory>
+    class BSTree<T, Node, Compare, Factory>::walker {
+        Node *node;
+    public:
+        explicit walker(Node *node) : node(node) {}
+
+        Node *unsafe_cast() { return node; }
+
+        T &get() { return node->x; }
+
+        const T &get() const { return node->x; }
+
+        T &operator*() { return get(); }
+
+        const T &operator*() const { return get(); }
+
+        T *operator->() { return &get(); }
+
+        const T *operator->() const { return &get(); }
+
+        void go_up() { node = static_cast<Node *>(node->parent); }
+
+        void go_left() { node = static_cast<Node *>(node->left); }
+
+        void go_right() { node = static_cast<Node *>(node->right); }
+
+        void go_min() { node = min_node(node); }
+
+        void go_max() { node = max_node(node); }
+
+        void go_succ() { node = succ_node(node); }
+
+        void go_pred() { node = succ_node(node); }
+
+        bool valid() { return node; }
+    };
+
+    template<class T, class Node, class Compare, class Factory>
+    class BSTree<T, Node, Compare, Factory>::iterator {
+        Node *node;
+    public:
+        explicit iterator(Node *node) : node(node) {}
+
+        bool operator==(const iterator &that) { return node == that.node; }
+
+        bool operator!=(const iterator &that) { return node != that.node; }
+
+        T &operator*() { return node->x; }
+
+        const T &operator*() const { return node->x; }
+
+        T *operator->() { return &node->x; }
+
+        const T *operator->() const { return &node->x; }
+
+        iterator &operator++() {
+            node = succ_node(node);
+            return *this;
+        }
+
+        const iterator operator++(int) {
+            auto m = *this;
+            node = succ_node(node);
+            return m;
+        }
+
+        iterator &operator--() {
+            node = pred_node(node);
+            return *this;
+        }
+
+        const iterator operator--(int) {
+            auto m = *this;
+            node = pred_node(node);
+            return m;
+        }
+    };
+
+    template<class T, class Node, class Compare, class Factory>
+    Node *BSTree<T, Node, Compare, Factory>::find_last(const T &x) {
+        Node *w = this->root, *prev = nullptr;
+        while (w != nullptr) {
+            prev = w;
+            switch (compare(x, w->x)) {
+                case Less:
+                    w = static_cast<Node *>(w->children[LEFT]);
+                    break;
+                case Greater:
+                    w = static_cast<Node *>(w->children[RIGHT]);
+                    break;
+                case Eq:
+                    return w;
+
+            }
+        }
+        return prev;
+    }
+
+    template<class T, class Node, class Compare, class Factory>
+    bool BSTree<T, Node, Compare, Factory>::adopt(Node *p, Node *u) {
+        if (p == nullptr) {
+            this->root = u;
+        } else {
+            switch (compare(u->x, p->x)) {
+                case Less:
+                    p->children[LEFT] = u;
+                    break;
+                case Greater:
+                    p->children[RIGHT] = u;
+                    break;
+                case Eq:
+                    return false;
+
+            }
+            u->parent = p;
+        }
+        n++;
+        bottom_up_update(u);
+        return true;
+    }
+
+    template<class T, class Node, class Compare, class Factory>
+    void BSTree<T, Node, Compare, Factory>::splice(Node *u) {
+        Node *s, *p;
+        if (u->children[LEFT] != nullptr) {
+            s = static_cast<Node *>(u->children[LEFT]);
+        } else {
+            s = static_cast<Node *>(u->children[RIGHT]);
+        }
+        if (u == this->root) {
+            this->root = s;
+            p = nullptr;
+        } else {
+            p = static_cast<Node *>(u->parent);
+            if (p->children[LEFT] == u) {
+                p->children[LEFT] = s;
+            } else {
+                p->children[RIGHT] = s;
+            }
+        }
+        if (s != nullptr) {
+            s->parent = p;
+        }
+        bottom_up_update(p);
+        n--;
+    }
+
+    template<class T, class Node, class Compare, class Factory>
+    void BSTree<T, Node, Compare, Factory>::erase(Node *u) {
+        if (u->children[LEFT] == nullptr || u->children[RIGHT] == nullptr) {
+            splice(u);
+            this->factory.destroy(u);
+        } else {
+            Node *w = static_cast<Node *>(u->children[RIGHT]);
+            while (w->children[LEFT] != nullptr)
+                w = static_cast<Node *>(w->children[LEFT]);
+            u->x = w->x;
+            splice(w);
+            this->factory.destroy(w);
+        }
+    }
+
+    template<class T, class Node, class Compare, class Factory>
+    void BSTree<T, Node, Compare, Factory>::rotate(Node *u, Direction direction) {
+        Node *w = static_cast<Node *>(u->children[!direction]);
+        w->parent = u->parent;
+        if (w->parent) {
+            if (w->parent->children[LEFT] == u) w->parent->children[LEFT] = w;
+            else w->parent->children[RIGHT] = w;
+        }
+        u->children[!direction] = w->children[direction];
+        if (u->children[!direction]) {
+            u->children[!direction]->parent = u;
+        }
+        u->parent = w;
+        w->children[direction] = u;
+        if (u == this->root) {
+            this->root = w;
+            this->root->parent = nullptr;
+        }
+        u->update();
+        w->update();
+    }
+
+    template<class T, class Node, class Compare, class Factory>
+    bool BSTree<T, Node, Compare, Factory>::insert(Node *u) {
+        return adopt(find_last(u->x), u);
+    }
+
+    template<class T, class Node, class Compare, class Factory>
+    void BSTree<T, Node, Compare, Factory>::bottom_up_update(Node *u) {
+        while (u) {
+            u->update();
+            u = static_cast<Node *>(u->parent);
+        }
+    }
+
+    template<class T, class Node, class Compare, class Factory>
+    bool BSTree<T, Node, Compare, Factory>::insert(const T &x) {
+        return insert(this->factory.construct(x));
+    }
+
+    template<class T, class Node, class Compare, class Factory>
+    bool BSTree<T, Node, Compare, Factory>::erase(const T &x) {
+        Node *u = find_last(x);
+        if (u && compare(x, u->x) == Eq) {
+            erase(u);
+            return true;
+        }
+        return false;
+    }
+
+    template<class T, class Node, class Compare, class Factory>
+    Node *BSTree<T, Node, Compare, Factory>::min_node(Node *u) {
+        while (u && u->children[LEFT]) {
+            u = static_cast<Node *>(u->children[LEFT]);
+        }
+        return u;
+    }
+
+    template<class T, class Node, class Compare, class Factory>
+    Node *BSTree<T, Node, Compare, Factory>::max_node(Node *u) {
+        while (u && u->children[RIGHT]) {
+            u = static_cast<Node *>(u->children[RIGHT]);
+        }
+        return u;
+    }
+
+    template<class T, class Node, class Compare, class Factory>
+    Node *BSTree<T, Node, Compare, Factory>::pred_node(Node *u) {
+        if (!u) return nullptr;
+        if (u->children[LEFT]) return max_node(static_cast<Node *>(u->children[LEFT]));
+        else {
+            while (u->parent && u != u->parent->children[LEFT]) {
+                u = static_cast<Node *>(u->parent);
+            }
+            return static_cast<Node *>(u->parent);
+        }
+    }
+
+    template<class T, class Node, class Compare, class Factory>
+    Node *BSTree<T, Node, Compare, Factory>::succ_node(Node *u) {
+        if (!u) return nullptr;
+        if (u->children[RIGHT]) return min_node(static_cast<Node *>(u->children[RIGHT]));
+        else {
+            while (u->parent && u != u->parent->children[LEFT]) {
+                u = static_cast<Node *>(u->parent);
+            }
+            return static_cast<Node *>(u->parent);
+        }
+    }
+
+    template<class T, class Node, class Compare, class Factory>
+    typename BSTree<T, Node, Compare, Factory>::walker BSTree<T, Node, Compare, Factory>::top() {
+        return BSTree::walker(this->root);
+    }
+
+    template<class T, class Node, class Compare, class Factory>
+    typename BSTree<T, Node, Compare, Factory>::walker BSTree<T, Node, Compare, Factory>::find(const T &x) {
+        Node *w = static_cast<Node *>(this->root);
+        while (w != nullptr) {
+            auto comp = compare(x, w->x);
+            if (comp == Less) {
+                w = static_cast<Node *>(w->children[LEFT]);
+            } else if (comp == Greater) {
+                w = static_cast<Node *>(w->children[RIGHT]);
+            } else {
+                return walker(w);
+            }
+        }
+        return walker(nullptr);
+    }
+
+    template<class T, class Node, class Compare, class Factory>
+    size_t BSTree<T, Node, Compare, Factory>::size() {
+        return n;
+    }
+
+    template<class T, class Node, class Compare, class Factory>
+    void BSTree<T, Node, Compare, Factory>::clear() {
+        BinTree<Node, Factory>::clear();
+        n = 0;
+    }
+
+    template<class T, class Node, class Compare, class Factory>
+    typename BSTree<T, Node, Compare, Factory>::walker BSTree<T, Node, Compare, Factory>::min() {
+        return BSTree::walker(min_node(this->root));
+    }
+
+    template<class T, class Node, class Compare, class Factory>
+    typename BSTree<T, Node, Compare, Factory>::walker BSTree<T, Node, Compare, Factory>::max() {
+        return BSTree::walker(max_node(this->root));
+    }
+
+    template<class T, class Node, class Compare, class Factory>
+    typename BSTree<T, Node, Compare, Factory>::walker BSTree<T, Node, Compare, Factory>::succ(const T &x) {
+        Node *u = static_cast<Node *>(this->root);
+        while (u) {
+            if (compare(u->x, x) != Greater) u = static_cast<Node *>(u->children[RIGHT]);
+            else {
+                auto p = pred_node(u);
+                if (p && compare(p->x, x) == Greater) u = p;
+                else break;
+            }
+        }
+        return walker(u);
+    }
+
+    template<class T, class Node, class Compare, class Factory>
+    typename BSTree<T, Node, Compare, Factory>::walker BSTree<T, Node, Compare, Factory>::pred(const T &x) {
+        Node *u = static_cast<Node *>(this->root);
+        while (u) {
+            if (compare(u->x, x) != Less) u = static_cast<Node *>(u->children[LEFT]);
+            else {
+                auto p = succ_node(u);
+                if (p && compare(p->x, x) == Less) u = p;
+                else break;
+            }
+        }
+        return walker(u);
+    }
+
+    template<class T, class Node, class Compare, class Factory>
+    bool BSTree<T, Node, Compare, Factory>::contains(const T &x) {
+        auto t = find_last(x);
+        return compare(t->x, x) == Eq;
+    }
+
+    template<class T, class Node, class Compare, class Factory>
+    typename BSTree<T, Node, Compare, Factory>::iterator BSTree<T, Node, Compare, Factory>::begin() {
+        return BSTree::iterator(min_node(this->root));
+    }
+
+    template<class T, class Node, class Compare, class Factory>
+    typename BSTree<T, Node, Compare, Factory>::iterator BSTree<T, Node, Compare, Factory>::end() {
+        return BSTree::iterator(nullptr);
+    }
+
 
 }
 #endif //DATA_STRUCTURE_FOR_LOVE_BINARY_TREE_BASE_HPP
