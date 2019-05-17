@@ -2,47 +2,78 @@
 // Created by schrodinger on 3/4/19.
 //
 #include <binary_tree_base.hpp>
+#include <static_random_helper.hpp>
+#include <set>
 #include <iostream>
+#include <algorithm>
 using namespace std;
 using namespace data_structure;
+using namespace data_structure::utils;
+#define RANGE 500000
+RandomIntGen<int> intGen{};
 
 int main(){
-    BasicBinaryTree<int, std::string, size_t> tree {};
-    tree.insert(1, "123");
-    tree.insert(2, "234");
-    tree.insert(-1, "234");
-    tree.insert(125, "789");
-
-
-    BasicBinaryTree<int, std::string, size_t> tree2 {};
-    tree2.insert(4, "123");
-    tree2.insert(5, "234");
-    tree2.insert(6, "234");
-    tree2.insert(7, "789");
-    tree.absorb(tree2);
-//    for (auto i : {500, 355, 32, 100, 0}) {
-//        tree.insert(i);
-//    }
-    //tree.
-    std::cout << tree.walk_to<OrderWalker>(120) << std::endl;
-    struct ToVector: TreeVisitor<int, std::string, size_t > {
-        std::vector<int> vec{};
-        void visit(const int& key, std::string& value, size_t& info) override {
-            vec.push_back(key);
+    {
+        BSTree<int> test;
+        set<int> test_set;
+        for (int i = 0; i < RANGE; ++i) {
+            auto m = intGen();
+            test.insert(m);
+            test_set.insert(m);
+            assert(test.contains(m));
         }
-    };
-    auto mm = ToVector{};
-    tree.safe_in_order(mm);
-    for(auto& i : mm.vec) {
-        std::cout << i << std::endl;
+        auto iter0 = test.begin();
+        auto iter1 = test_set.begin();
+        int time = 0;
+        while (iter0 != test.end()) {
+            time++;
+            assert(*iter0 == *iter1);
+            iter0++;
+            iter1++;
+        }
+        assert(time == test.size());
+        assert(time == test_set.size());
     }
-    auto m = tree.begin();
-    for (auto i: tree) {
-        std::cout << get<0>(i) << std::endl;
-        get<1>(i) += '2';
+
+    {
+        BSTree<int> test;
+        set<int> test_set;
+        for (int i = 0; i < RANGE; ++i) {
+            auto m = intGen();
+            test.insert(m);
+            test_set.insert(m);
+            assert(*test.min() == *test_set.begin());
+            assert(test.contains(m));
+        }
+
+        BSTree<int>::iterator u = test.end();
+        --u;
+        for (auto i = test_set.rbegin(); i != test_set.rend(); i++) {
+            assert(*u == *i);
+            --u;
+        }
+
+        for (int i = 0; i < RANGE / 10; ++i) {
+            auto m = intGen();
+            test.erase(m);
+            test_set.erase(m);
+            assert(*test.min() == *test_set.begin());
+            assert(*test.max() == *test_set.rbegin());
+            assert(!test.contains(m));
+        }
+
+
+        auto iter0 = test.begin();
+        auto iter1 = test_set.begin();
+        int time = 0;
+        while (iter0 != test.end()) {
+            time++;
+            assert(*iter0 == *iter1);
+            ++iter0;
+            iter1++;
+        }
+        assert(time == test.size());
+        assert(time == test_set.size());
     }
-    for (auto i: tree) {
-        std::cout << get<1>(i) << std::endl;
-    }
-    return 0;
+
 }

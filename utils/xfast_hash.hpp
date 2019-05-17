@@ -6,7 +6,7 @@
 #define DATA_STRUCTURE_FOR_LOVE_XFAST_HASH_HPP
 
 #include <new>
-
+#include <unordered_map>
 namespace data_structure::utils {
 
     template<class T>
@@ -69,7 +69,9 @@ namespace data_structure::utils {
 
     template<class T, size_t current>
     struct _Builder : _Builder<T, current - 1> {
-        explicit _Builder(BitHashBase<T> **addr) : _Builder<T, current - 1>(addr - 1) {
+        using type = BitHashBase<T>;
+
+        explicit _Builder(type **addr) : _Builder<T, current - 1>(addr - 1) {
             *addr = static_cast<BitHashBase<T> *>(::operator new(sizeof(BitHash<T, current>)));
             emplace_construct<BitHash<T, current>>(static_cast<BitHash<T, current> *>(*addr));
         }
@@ -78,7 +80,36 @@ namespace data_structure::utils {
 
     template<class T>
     struct _Builder<T, 0> {
-        explicit _Builder(BitHashBase<T> **addr) {}
+        using type = BitHashBase<T>;
+
+        explicit _Builder(type **addr) {}
+    };
+
+
+    template<class Key, class U>
+    class STL_WRAPPER : public std::unordered_map<Key, U> {
+    public:
+        inline U get(Key index) noexcept { return this->operator[](index); }
+
+        inline void put(Key index, U u) noexcept { this->operator[](index) = u; }
+    };
+
+    template<class T, size_t current>
+    struct STL_Builder : STL_Builder<T, current - 1> {
+        using type = STL_WRAPPER<size_t, T>;
+
+        explicit STL_Builder(type **addr) : STL_Builder<T, current - 1>(addr - 1) {
+            *addr = static_cast<type *>(::operator new(sizeof(type)));
+            emplace_construct<type>(*addr);
+        }
+
+    };
+
+    template<class T>
+    struct STL_Builder<T, 0> {
+        using type = STL_WRAPPER<size_t, T>;
+
+        explicit STL_Builder(type **addr) {}
     };
 
 }

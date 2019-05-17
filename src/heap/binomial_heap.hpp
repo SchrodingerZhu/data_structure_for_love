@@ -321,6 +321,10 @@ namespace data_structure {
         ~BinomialHeap() {
             destroy(root);
         }
+
+        bool empty() override {
+            return !root;
+        }
     };
 }
 #endif //DATA_STRUCTURE_FOR_LOVE_BINOMIAL_HEAP_HPP

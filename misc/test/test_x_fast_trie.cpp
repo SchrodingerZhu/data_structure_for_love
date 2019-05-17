@@ -15,7 +15,7 @@
 std::random_device uuu;
 std::mt19937_64 eng{uuu()};
 std::uniform_int_distribution<int> dist(0, std::numeric_limits<int>::max());
-#define RANGE 100000
+#define RANGE 200000
 #define get_rand() dist(eng)
 
 int main() {

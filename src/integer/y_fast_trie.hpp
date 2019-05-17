@@ -16,7 +16,8 @@
 namespace data_structure {
     using namespace utils;
 
-    template<typename Int, size_t bit = max_bit(std::numeric_limits<Int>::max())>
+    template<typename Int, size_t bit = max_bit(
+            std::numeric_limits<Int>::max()), template<class, size_t> typename HASH_BUILDER = STL_Builder>
     struct YFastTrie : IntegerSetBase<Int> {
         std::size_t n = 0;
         constexpr static Int top =
@@ -63,7 +64,7 @@ namespace data_structure {
             };
         } dummy;
 
-        BitHashBase<Node *> *maps[bit + 1]{};
+        typename HASH_BUILDER<Node *, bit + 1>::type *maps[bit + 1]{};
 #ifdef DEBUG
 
         void display(Node *u, std::string prefix, std::string indent = "") {
@@ -94,7 +95,8 @@ namespace data_structure {
         }
 
 #endif
-        void x_insert(Int t, YTreap<int> *brand = nullptr) {
+
+        void x_insert(Int t, YTreap<Int> *brand = nullptr) {
             Int i{}, c{};
             Node *u = root;
             for (; i < bit; ++i) {
@@ -197,12 +199,12 @@ namespace data_structure {
 
     public:
         YFastTrie() : root(new Path) {
-            _Builder<Node *, bit + 1> m(maps + bit);
+            HASH_BUILDER<Node *, bit + 1> m(maps + bit);
             dummy.links[1] = dummy.links[0] = &dummy;
         }
 
         YFastTrie(const std::initializer_list<Int> t) : root(new Path) {
-            _Builder<Node *, bit + 1> m(maps + bit);
+            HASH_BUILDER<Node *, bit + 1> m(maps + bit);
             dummy.links[1] = dummy.links[0] = &dummy;
             for (auto i: t) {
                 this->insert(i);
@@ -210,7 +212,7 @@ namespace data_structure {
         }
 
         YFastTrie(const YFastTrie &t) : root(new Path) {
-            _Builder<Node *, bit + 1> m(maps + bit);
+            HASH_BUILDER<Node *, bit + 1> m(maps + bit);
             dummy.links[1] = dummy.links[0] = &dummy;
             for (auto i: t) {
                 this->insert(i);
@@ -234,7 +236,7 @@ namespace data_structure {
             if (root) delete (root);
             for (auto i: maps) {
                 if (i) {
-                    destroy_at(i);
+                    utils::destroy_at(i);
                     ::operator delete(i);
                 }
             }

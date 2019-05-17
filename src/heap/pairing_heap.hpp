@@ -234,6 +234,10 @@ namespace data_structure {
         }
 
 
+        bool empty() override {
+            return !root;
+        }
+
     };
 }
 #endif //DATA_STRUCTURE_FOR_LOVE_PAIRING_HEAP_HPP
