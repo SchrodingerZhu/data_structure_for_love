@@ -13,9 +13,9 @@ include_directories(utils src/array_like src/memory src/binary_tree src/list_bas
 #SET_TARGET_PROPERTIES(array_like PROPERTIES LINKER_LANGUAGE CXX)
 
 unit_test(xor_list)
-unit_test(binary_tree_base) # will re-open it soon
+unit_test(binary_tree_base)
 unit_test(optimized_vector)
-unit_test(array_queue)
+unit_test(rootish_stack)
 unit_test(object_pool)
 #unit_test(cheney_heap) # no more support in current stage
 unit_test(binary_heap)

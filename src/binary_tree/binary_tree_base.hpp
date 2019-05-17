@@ -100,8 +100,6 @@ namespace data_structure {
         }
     public:
         virtual ~BinTree() {
-//            destroy(root);
-//            root = nullptr;
             clear();
         }
     };
@@ -249,8 +247,9 @@ namespace data_structure {
     template<class T, class Node, class Compare, class Factory>
     class BSTree<T, Node, Compare, Factory>::iterator {
         Node *node;
+        BSTree *tree;
     public:
-        explicit iterator(Node *node) : node(node) {}
+        explicit iterator(Node *node, BSTree *tree) : node(node), tree(tree) {}
 
         bool operator==(const iterator &that) { return node == that.node; }
 
@@ -276,13 +275,15 @@ namespace data_structure {
         }
 
         iterator &operator--() {
-            node = pred_node(node);
+            if (!node) node = tree->max().unsafe_cast();
+            else node = pred_node(node);
             return *this;
         }
 
         const iterator operator--(int) {
             auto m = *this;
-            node = pred_node(node);
+            if (!node) node = tree->max().unsafe_cast();
+            else node = pred_node(node);
             return m;
         }
     };
@@ -447,7 +448,7 @@ namespace data_structure {
         if (!u) return nullptr;
         if (u->children[LEFT]) return max_node(static_cast<Node *>(u->children[LEFT]));
         else {
-            while (u->parent && u != u->parent->children[LEFT]) {
+            while (u->parent && u != u->parent->children[RIGHT]) {
                 u = static_cast<Node *>(u->parent);
             }
             return static_cast<Node *>(u->parent);
@@ -544,12 +545,12 @@ namespace data_structure {
 
     template<class T, class Node, class Compare, class Factory>
     typename BSTree<T, Node, Compare, Factory>::iterator BSTree<T, Node, Compare, Factory>::begin() {
-        return BSTree::iterator(min_node(this->root));
+        return BSTree::iterator(min_node(this->root), this);
     }
 
     template<class T, class Node, class Compare, class Factory>
     typename BSTree<T, Node, Compare, Factory>::iterator BSTree<T, Node, Compare, Factory>::end() {
-        return BSTree::iterator(nullptr);
+        return BSTree::iterator(nullptr, this);
     }
 
 

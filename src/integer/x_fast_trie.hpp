@@ -15,7 +15,8 @@
 namespace data_structure {
     using namespace utils;
 
-    template<typename Int, size_t bit = max_bit(std::numeric_limits<Int>::max())>
+    template<typename Int, size_t bit = max_bit(
+            std::numeric_limits<Int>::max()), template<class, size_t> typename HASH_BUILDER = STL_Builder>
     struct XFastTrie : IntegerSetBase<Int> {
         std::size_t n = 0;
         struct Path;
@@ -57,15 +58,15 @@ namespace data_structure {
             ~Leaf() override = default;
         } dummy;
 
-        BitHashBase<Node *> *maps[bit + 1]{};
+        typename HASH_BUILDER<Node *, bit + 1>::type *maps[bit + 1]{};
     public:
         XFastTrie() : root(new Path) {
-            _Builder<Node *, bit + 1> m(maps + bit);
+            HASH_BUILDER<Node *, bit + 1> m(maps + bit);
             dummy.links[1] = dummy.links[0] = &dummy;
         }
 
         XFastTrie(const std::initializer_list<Int> t) : root(new Path) {
-            _Builder<Node *, bit + 1> m(maps + bit);
+            HASH_BUILDER<Node *, bit + 1> m(maps + bit);
             dummy.links[1] = dummy.links[0] = &dummy;
             for (auto i: t) {
                 this->insert(i);
@@ -73,7 +74,7 @@ namespace data_structure {
         }
 
         XFastTrie(const XFastTrie &t) : root(new Path) {
-            _Builder<Node *, bit + 1> m(maps + bit);
+            HASH_BUILDER<Node *, bit + 1> m(maps + bit);
             dummy.links[1] = dummy.links[0] = &dummy;
             for (auto i: t) {
                 this->insert(i);
@@ -97,7 +98,7 @@ namespace data_structure {
             if (root) delete (root);
             for (auto i: maps) {
                 if (i) {
-                    destroy_at(i);
+                    utils::destroy_at(i);
                     ::operator delete(i);
                 }
             }

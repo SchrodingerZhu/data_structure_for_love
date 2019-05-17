@@ -9,7 +9,7 @@
 using namespace std;
 using namespace data_structure;
 using namespace data_structure::utils;
-#define RANGE 100000
+#define RANGE 500000
 RandomIntGen<int> intGen{};
 
 int main(){
@@ -42,15 +42,27 @@ int main(){
             auto m = intGen();
             test.insert(m);
             test_set.insert(m);
+            assert(*test.min() == *test_set.begin());
             assert(test.contains(m));
+        }
+
+        BSTree<int>::iterator u = test.end();
+        --u;
+        for (auto i = test_set.rbegin(); i != test_set.rend(); i++) {
+            assert(*u == *i);
+            --u;
         }
 
         for (int i = 0; i < RANGE / 10; ++i) {
             auto m = intGen();
             test.erase(m);
             test_set.erase(m);
+            assert(*test.min() == *test_set.begin());
+            assert(*test.max() == *test_set.rbegin());
             assert(!test.contains(m));
         }
+
+
         auto iter0 = test.begin();
         auto iter1 = test_set.begin();
         int time = 0;

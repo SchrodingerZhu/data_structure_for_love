@@ -10,7 +10,7 @@
 using namespace std;
 using namespace data_structure;
 using namespace data_structure::utils;
-#define RANGE 100000
+#define RANGE 500000
 RandomIntGen<int> intGen{};
 
 int main() {
