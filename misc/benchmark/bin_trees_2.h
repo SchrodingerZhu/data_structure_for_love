@@ -16,11 +16,14 @@
 namespace benchmark {
     using namespace data_structure;
 
+#ifndef DATA_STRUCTURE_FOR_LOVE_BIN_TREES_H_1
     struct TreeRunner : public BenchMark {
         std::string name;
 
         explicit TreeRunner(std::string name) noexcept : name(std::move(name)), BenchMark() {}
     };
+
+#endif
 
 
     template<class Tree>
@@ -41,7 +44,7 @@ namespace benchmark {
             return (b - a).count();
         }
 
-        Result run() final {
+        Result run() override {
             Result result;
             result.name = name;
             for (auto i = 1; i <= 10000; ++i) {

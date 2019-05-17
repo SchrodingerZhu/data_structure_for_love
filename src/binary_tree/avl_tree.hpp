@@ -17,7 +17,7 @@ namespace data_structure {
     };
 
     template<class T, class Node = AVLNode<T>,
-            class Compare = DefaultCompare<T>, class Factory = utils::TrivialFactory<Node>>
+            class Compare = DefaultCompare<T>, class Factory = utils::PoolFactory<Node>>
     class AVLTree : public BSTree<T, Node, Compare, Factory> {
     protected:
         using BinTree<Node, Factory>::factory;

@@ -23,6 +23,7 @@ namespace benchmark {
     };
 
 
+
     template<class Tree>
     struct OrderedInsertionRunner : public TreeRunner {
 
@@ -41,7 +42,7 @@ namespace benchmark {
             return (b - a).count();
         }
 
-        Result run() final {
+        Result run() override {
             Result result;
             result.name = name;
             for (auto i = 1; i <= 10000; ++i) {

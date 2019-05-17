@@ -309,6 +309,10 @@ namespace data_structure {
             return _size;
         }
 
+        bool empty() override {
+            return !root;
+        }
+
     };
 
 }

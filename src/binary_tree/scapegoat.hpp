@@ -10,7 +10,7 @@
 
 namespace data_structure {
     template<class T, class Node = WeightedBSTNode<T>,
-            class Compare = DefaultCompare<T>, class Factory = utils::TrivialFactory<Node>>
+            class Compare = DefaultCompare<T>, class Factory = utils::PoolFactory<Node>>
     class ScapeGoat : public BSTree<T, Node, Compare, Factory> {
     protected:
         using BinTree<Node, Factory>::root;
@@ -146,7 +146,9 @@ namespace data_structure {
     template<class T, class Node, class Compare, class Factory>
     bool ScapeGoat<T, Node, Compare, Factory>::erase(const T &x) {
         if (BSTree<T, Node, Compare, Factory>::erase(x)) {
-            if ((n << 1) < q) {
+            if (!root) {
+                q = 0;
+            } else if ((n << 1) < q) {
                 rebuild(root);
                 q = n;
             }

@@ -95,7 +95,8 @@ namespace data_structure {
         }
 
 #endif
-        void x_insert(Int t, YTreap<int> *brand = nullptr) {
+
+        void x_insert(Int t, YTreap<Int> *brand = nullptr) {
             Int i{}, c{};
             Node *u = root;
             for (; i < bit; ++i) {

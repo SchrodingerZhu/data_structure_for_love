@@ -199,7 +199,12 @@ namespace data_structure {
                     this->alloc.destroy(p);
                     this->alloc.deallocate(p, 1);
                 }
-            };
+
+        bool empty() override {
+            return !root;
+        }
+    };
+
 
 }
 

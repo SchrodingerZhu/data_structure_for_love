@@ -29,7 +29,7 @@ namespace data_structure::utils {
         void absorb(TrivialFactory &that) {/*Nothing*/}
     };
 
-    template<class Node, std::size_t N = 13>
+    template<class Node, std::size_t N = 500>
     class PoolFactory : NodeFactory {
         ObjectPool<Node, N> pool;
     public:

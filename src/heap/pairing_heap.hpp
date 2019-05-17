@@ -233,6 +233,10 @@ namespace data_structure {
             return {m, this};
         }
 
+        bool empty() override {
+            return !root;
+        }
+
 
     };
 }

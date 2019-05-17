@@ -9,7 +9,7 @@
 
 namespace data_structure {
     template<class T, class Node = BSTNode<T>,
-            class Compare = DefaultCompare<T>, class Factory = utils::TrivialFactory<Node>>
+            class Compare = DefaultCompare<T>, class Factory = utils::PoolFactory<Node>>
     class Splay : public BSTree<T, Node, Compare, Factory> {
     protected:
         using BinTree<Node, Factory>::root;

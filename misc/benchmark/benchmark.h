@@ -11,6 +11,7 @@
 #include <utility>
 #include <static_random_helper.hpp>
 
+long long seed = std::chrono::steady_clock::now().time_since_epoch().count();
 namespace benchmark {
     struct BenchMark;
     static std::vector<BenchMark *> benchmarks{};
@@ -54,6 +55,7 @@ namespace benchmark {
         virtual Result run() = 0;
 
         BenchMark() {
+            rand.eng.seed(seed);
             benchmarks.push_back(this);
         };
     };
