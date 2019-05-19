@@ -8,7 +8,6 @@
 #endif //DEBUG
 
 #include <memory>
-#include <ostream>
 #include <object_pool.hpp>
 
 namespace data_structure {
@@ -258,159 +257,195 @@ namespace data_structure {
         using reverse_iterator = xor_reverse_iterator<XorList>;
         using const_iterator = const iterator;
 
-        iterator begin() {
-            return {nullptr, head};
-        }
+        iterator begin();
 
-        iterator end() {
-            return {tail, nullptr, static_cast<difference_type>(size())};
-        }
+        iterator end();
 
-        const iterator begin() const {
-            return {nullptr, head};
-        }
+        const iterator begin() const;
 
-        const iterator end() const {
-            return {tail, nullptr, static_cast<difference_type>(size())};
-        }
+        const iterator end() const;
 
-        const iterator cbegin() const {
-            return begin();
-        }
+        const iterator cbegin() const;
 
-        const iterator cend() const {
-            return end();
-        }
+        const iterator cend() const;
 
-        reverse_iterator rbegin() {
-            return {tail, nullptr};
-        }
+        reverse_iterator rbegin();
 
-        reverse_iterator rend() {
-            return {nullptr, head, static_cast<difference_type>(size())};
-        }
+        reverse_iterator rend();
 
-        const reverse_iterator rbegin() const {
-            return {tail, nullptr};
-        }
+        const reverse_iterator rbegin() const;
 
-        const reverse_iterator rend() const {
-            return {nullptr, head, static_cast<difference_type>(size())};
-        }
+        const reverse_iterator rend() const;
 
-        const reverse_iterator crbegin() const {
-            return rbegin();
-        }
+        const reverse_iterator crbegin() const;
 
-        const reverse_iterator crend() const {
-            return rend();
-        }
+        const reverse_iterator crend() const;
 
 
-        size_type size() {
-            return _size;
-        }
+        size_type size();
 
-        void push_back(const value_type &newValue) {
-            auto *newNode = memory_pool.allocate(1);
-            memory_pool.construct(newNode, newValue);
-            if (head == nullptr) {
-                head = newNode;
-                tail = newNode;
-            } else {
-                newNode->link = combine(tail, nullptr);
-                tail->link = combine(combine(tail->link, nullptr), newNode);
-                tail = newNode;
-            }
-            _size += 1;
-        }
+        void push_back(const value_type &newValue);
 
         template<typename ...Args>
-        void emplace_back(Args &&... args) {
-            auto *newNode = memory_pool.allocate(1);
-            memory_pool.construct(newNode, std::forward<Args>(args)...);
-            if (head == nullptr) {
-                head = newNode;
-                tail = newNode;
-            } else {
-                newNode->link = combine(tail, nullptr);
-                tail->link = combine(combine(tail->link, nullptr), newNode);
-                tail = newNode;
-            }
-            _size += 1;
-        }
+        void emplace_back(Args &&... args);
 
-#ifdef DEBUG
+        void pop_back();
 
-        void view() { // Print out the list.
-            if (head == nullptr)
-                return;
-            viewList(head, nullptr);
-        }
+        void erase(size_type n);
 
-        void viewList(XorNode<value_type> *now, XorNode<value_type> *last) {
-            std::cout << now->value << std::endl;
-            if (now == tail) {
-                //cout << endl;
-                return;
-            }
-            viewList(combine(now->link, last), now);
-        }
-
-#endif //DEBUG
-
-        void pop_back() { // Delete a XorNode<T>.
-            if (head == nullptr)
-                return;
-            else {
-                auto prev = combine(tail->link, nullptr);
-                memory_pool.destroy(tail);
-                memory_pool.deallocate(tail, 1);
-                if (prev) prev->link = combine(combine(prev->link, tail), nullptr);
-                tail = prev;
-                _size--;
-            }
-        }
-
-        void erase(size_type n) {
-            if (n >= size() || n < 0) return;
-
-            if (n == size() - 1) {
-                auto prev = combine(tail->link, nullptr);
-                if (prev) prev->link = combine(combine(prev->link, tail), nullptr);
-                tail = prev;
-                _size--;
-                return;
-            }
-
-            auto next = begin() + 1;
-            auto now = begin();
-
-            while (n--) {
-                now++;
-                next++;
-            }
-            if (now.now == head) {
-                head = next.now;
-            } else {
-                now.prev->link = combine(next.now, combine(now.now, now.prev->link));
-            }
-            next.now->link = combine(now.prev, combine(now.now, next.now->link));
-            _size--;
-        }
-
-        bool contains(const value_type &target) { // Find out if a XorNode<T> exists.
-            auto iter = begin(), e = end();
-            while (iter < e) {
-                if (*iter == target) return true;
-                ++iter;
-            }
-            return false;
-        }
+        bool contains(const value_type &target);
 
         friend iterator;
         friend reverse_iterator;
     };
+
+    template<class T, class Alloc>
+    typename XorList<T, Alloc>::iterator XorList<T, Alloc>::begin() {
+        return {nullptr, head};
+    }
+
+    template<class T, class Alloc>
+    typename XorList<T, Alloc>::iterator XorList<T, Alloc>::end() {
+        return {tail, nullptr, static_cast<difference_type>(size())};
+    }
+
+    template<class T, class Alloc>
+    const typename XorList<T, Alloc>::iterator XorList<T, Alloc>::begin() const {
+        return {nullptr, head};
+    }
+
+    template<class T, class Alloc>
+    const typename XorList<T, Alloc>::iterator XorList<T, Alloc>::end() const {
+        return {tail, nullptr, static_cast<difference_type>(size())};
+    }
+
+    template<class T, class Alloc>
+    const typename XorList<T, Alloc>::iterator XorList<T, Alloc>::cbegin() const {
+        return begin();
+    }
+
+    template<class T, class Alloc>
+    const typename XorList<T, Alloc>::iterator XorList<T, Alloc>::cend() const {
+        return end();
+    }
+
+    template<class T, class Alloc>
+    typename XorList<T, Alloc>::reverse_iterator XorList<T, Alloc>::rbegin() {
+        return {tail, nullptr};
+    }
+
+    template<class T, class Alloc>
+    typename XorList<T, Alloc>::reverse_iterator XorList<T, Alloc>::rend() {
+        return {nullptr, head, static_cast<difference_type>(size())};
+    }
+
+    template<class T, class Alloc>
+    const typename XorList<T, Alloc>::reverse_iterator XorList<T, Alloc>::rbegin() const {
+        return {tail, nullptr};
+    }
+
+    template<class T, class Alloc>
+    const typename XorList<T, Alloc>::reverse_iterator XorList<T, Alloc>::rend() const {
+        return {nullptr, head, static_cast<difference_type>(size())};
+    }
+
+    template<class T, class Alloc>
+    const typename XorList<T, Alloc>::reverse_iterator XorList<T, Alloc>::crbegin() const {
+        return rbegin();
+    }
+
+    template<class T, class Alloc>
+    const typename XorList<T, Alloc>::reverse_iterator XorList<T, Alloc>::crend() const {
+        return rend();
+    }
+
+    template<class T, class Alloc>
+    typename XorList<T, Alloc>::size_type XorList<T, Alloc>::size() {
+        return _size;
+    }
+
+    template<class T, class Alloc>
+    void XorList<T, Alloc>::push_back(const value_type &newValue) {
+        auto *newNode = memory_pool.allocate(1);
+        memory_pool.construct(newNode, newValue);
+        if (head == nullptr) {
+            head = newNode;
+            tail = newNode;
+        } else {
+            newNode->link = combine(tail, nullptr);
+            tail->link = combine(combine(tail->link, nullptr), newNode);
+            tail = newNode;
+        }
+        _size += 1;
+    }
+
+    template<class T, class Alloc>
+    template<typename... Args>
+    void XorList<T, Alloc>::emplace_back(Args &&... args) {
+        auto *newNode = memory_pool.allocate(1);
+        memory_pool.construct(newNode, std::forward<Args>(args)...);
+        if (head == nullptr) {
+            head = newNode;
+            tail = newNode;
+        } else {
+            newNode->link = combine(tail, nullptr);
+            tail->link = combine(combine(tail->link, nullptr), newNode);
+            tail = newNode;
+        }
+        _size += 1;
+    }
+
+    template<class T, class Alloc>
+    void XorList<T, Alloc>::pop_back() { // Delete a XorNode<T>.
+        if (head == nullptr)
+            return;
+        else {
+            auto prev = combine(tail->link, nullptr);
+            memory_pool.destroy(tail);
+            memory_pool.deallocate(tail, 1);
+            if (prev) prev->link = combine(combine(prev->link, tail), nullptr);
+            tail = prev;
+            _size--;
+        }
+    }
+
+    template<class T, class Alloc>
+    void XorList<T, Alloc>::erase(XorList::size_type n) {
+        if (n >= size() || n < 0) return;
+
+        if (n == size() - 1) {
+            auto prev = combine(tail->link, nullptr);
+            if (prev) prev->link = combine(combine(prev->link, tail), nullptr);
+            tail = prev;
+            _size--;
+            return;
+        }
+
+        auto next = begin() + 1;
+        auto now = begin();
+
+        while (n--) {
+            now++;
+            next++;
+        }
+        if (now.now == head) {
+            head = next.now;
+        } else {
+            now.prev->link = combine(next.now, combine(now.now, now.prev->link));
+        }
+        next.now->link = combine(now.prev, combine(now.now, next.now->link));
+        _size--;
+    }
+
+    template<class T, class Alloc>
+    bool XorList<T, Alloc>::contains(const value_type &target) { // Find out if a XorNode<T> exists.
+        auto iter = begin(), e = end();
+        while (iter < e) {
+            if (*iter == target) return true;
+            ++iter;
+        }
+        return false;
+    }
 
 }
 

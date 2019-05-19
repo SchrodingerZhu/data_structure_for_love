@@ -1,1 +1,4 @@
-/.idea
+.idea
+venv
+venv2
+.vs
