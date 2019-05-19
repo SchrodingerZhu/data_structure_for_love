@@ -8,7 +8,6 @@
 #include <node_factory.hpp>
 #include <utility>
 #include <stack>
-#include <iostream>
 // min
 // max
 // merge
@@ -25,51 +24,67 @@ namespace data_structure {
         virtual ~Node() = default;
 
 
-        inline void set_left(Node *n) noexcept {
-            children[LEFT] = n;
-            if (n) n->parent = this;
-        }
+        inline void set_left(Node *n) noexcept;
 
-        inline void set_right(Node *n) noexcept {
-            children[RIGHT] = n;
-            if (n) n->parent = this;
-        }
+        inline void set_right(Node *n) noexcept;
 
-        inline void set_children(Node *n1, Node *n2) noexcept {
-            set_left(n1);
-            set_right(n2);
-        }
+        inline void set_children(Node *n1, Node *n2) noexcept;
 
-        inline Node *replace_with(Node *y) noexcept {
-            return replace(parent, this, y);
-        }
+        inline Node *replace_with(Node *y) noexcept;
 
-        inline Node *sibling() noexcept {
-            return parent->children[parent->children[LEFT] == this];
-        }
+        inline Node *sibling() noexcept;
 
-        inline Node *uncle() noexcept {
-            return parent->sibling();
-        }
+        inline Node *uncle() noexcept;
 
-        inline Node *grandparent() noexcept {
-            return parent->parent;
-        }
+        inline Node *grandparent() noexcept;
 
 
-        inline static Node *replace(Node *parent, Node *x, Node *y) noexcept {
-            if (parent == nullptr) {
-                if (y) y->parent = nullptr;
-            } else if (parent->children[LEFT] == x) {
-                parent->set_left(y);
-            } else {
-                parent->set_right(y);
-            }
-            if (x) x->parent = nullptr;
-            return y;
-        }
+        inline static Node *replace(Node *parent, Node *x, Node *y) noexcept;
 
     };
+
+    void Node::set_left(Node *n) noexcept {
+        children[LEFT] = n;
+        if (n) n->parent = this;
+    }
+
+    void Node::set_right(Node *n) noexcept {
+        children[RIGHT] = n;
+        if (n) n->parent = this;
+    }
+
+    void Node::set_children(Node *n1, Node *n2) noexcept {
+        set_left(n1);
+        set_right(n2);
+    }
+
+    Node *Node::replace(Node *parent, Node *x, Node *y) noexcept {
+        if (parent == nullptr) {
+            if (y) y->parent = nullptr;
+        } else if (parent->children[LEFT] == x) {
+            parent->set_left(y);
+        } else {
+            parent->set_right(y);
+        }
+        if (x) x->parent = nullptr;
+        return y;
+    }
+
+    Node *Node::grandparent() noexcept {
+        return parent->parent;
+    }
+
+    Node *Node::uncle() noexcept {
+        return parent->sibling();
+    }
+
+    Node *Node::sibling() noexcept {
+        return parent->children[parent->children[LEFT] == this];
+    }
+
+    Node *Node::replace_with(Node *y) noexcept {
+        return replace(parent, this, y);
+    }
 
 
     template<class TreeNode, class Factory>
@@ -78,31 +93,35 @@ namespace data_structure {
         TreeNode *root = nullptr;
         Factory factory{};
 
-        virtual void clear() {
-            Node *u = root, *prev = nullptr, *next;
-            while (u != nullptr) {
-                if (prev == u->parent) {
-                    if (u->children[LEFT] != nullptr) next = u->children[LEFT];
-                    else if (u->children[RIGHT] != nullptr) next = u->children[RIGHT];
-                    else next = u->parent;
-                } else if (prev == u->children[LEFT]) {
-                    if (u->children[RIGHT] != nullptr) next = u->children[RIGHT];
-                    else next = u->parent;
-                } else {
-                    next = u->parent;
-                }
-                prev = u;
-                if (next == u->parent)
-                    factory.destroy(static_cast<TreeNode *>(u));
-                u = next;
-            }
-            root = nullptr;
-        }
+        virtual void clear();
+
     public:
         virtual ~BinTree() {
             clear();
         }
     };
+
+    template<class TreeNode, class Factory>
+    void BinTree<TreeNode, Factory>::clear() {
+        Node *u = root, *prev = nullptr, *next;
+        while (u != nullptr) {
+            if (prev == u->parent) {
+                if (u->children[LEFT] != nullptr) next = u->children[LEFT];
+                else if (u->children[RIGHT] != nullptr) next = u->children[RIGHT];
+                else next = u->parent;
+            } else if (prev == u->children[LEFT]) {
+                if (u->children[RIGHT] != nullptr) next = u->children[RIGHT];
+                else next = u->parent;
+            } else {
+                next = u->parent;
+            }
+            prev = u;
+            if (next == u->parent)
+                factory.destroy(static_cast<TreeNode *>(u));
+            u = next;
+        }
+        root = nullptr;
+    }
 
     template<class T>
     struct BSTNode : public Node {

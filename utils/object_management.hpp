@@ -7,8 +7,7 @@
 
 #include <utility>
 
-namespace data_structure {
-    namespace utils {
+namespace data_structure::utils {
 
         template <typename T, typename ... Args>
         inline void emplace_construct(T* t, Args&& ...args) noexcept {
@@ -19,6 +18,4 @@ namespace data_structure {
         inline void destroy_at(T* t) noexcept {t -> ~T();}
 
     }
-
-}
 #endif //DATA_STRUCTURE_FOR_LOVE_OBJECT_MANAGEMENT_HPP

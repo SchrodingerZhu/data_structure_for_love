@@ -8,6 +8,7 @@
 #include <vector>
 #include <chrono>
 #include <fstream>
+#include <iostream>
 #include <utility>
 #include <static_random_helper.hpp>
 

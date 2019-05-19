@@ -8,7 +8,6 @@
 #include <iostream>
 #include <cstdio>
 #include <memory>
-#include <ostream>
 #include <object_pool.hpp>
 
 namespace data_structure {
@@ -132,62 +131,24 @@ namespace data_structure {
         using iterator = list_iterator<SingleList>;
         using const_iterator = const iterator;
 
-        iterator begin() {
-            return {nullptr, head};
-        }
+        iterator begin();
 
-        iterator end() {
-            return {tail, nullptr, static_cast<difference_type>(size())};
-        }
+        iterator end();
 
-        const iterator begin() const {
-            return {nullptr, head};
-        }
+        const iterator begin() const;
 
-        const iterator end() const {
-            return {tail, nullptr, static_cast<difference_type>(size())};
-        }
+        const iterator end() const;
 
-        const iterator cbegin() const {
-            return begin();
-        }
+        const iterator cbegin() const;
 
-        const iterator cend() const {
-            return end();
-        }
+        const iterator cend() const;
 
-        size_type size() {
-            return _size;
-        }
+        size_type size();
 
-        void push_back(const value_type &newValue) {
-            auto *newNode = memory_pool.allocate(1);
-            memory_pool.construct(newNode, newValue);
-            if (head == nullptr) {
-                head = newNode;
-                tail = newNode;
-            } else {
-                newNode->next = nullptr;
-                tail->next = newNode;
-                tail = newNode;
-            }
-            _size += 1;
-        }
+        void push_back(const value_type &newValue);
 
         template<typename ...Args>
-        void emplace_back(Args &&... args) {
-            auto *newNode = memory_pool.allocate(1);
-            memory_pool.construct(newNode, std::forward<Args>(args)...);
-            if (head == nullptr) {
-                head = newNode;
-                tail = newNode;
-            } else {
-                newNode->next = nullptr;
-                tail->next = newNode;
-                tail = newNode;
-            }
-            _size += 1;
-        }
+        void emplace_back(Args &&... args);
 
 /*
         void view() { // Print out the list.
@@ -206,56 +167,131 @@ namespace data_structure {
         }
 */
 
-        void pop_back() { // Delete a Node<T>.
-            if (head == nullptr)
-                return;
-            else {
-                memory_pool.destroy(tail);
-                memory_pool.deallocate(tail, 1);
-                if (head != tail) {
-                    Node<value_type> *find = head;
-                    while (find->next != tail)
-                        find = find->next;
-                    find->next = nullptr;
-                    tail = find;
-                } else {
-                    head == nullptr;
-                    tail == nullptr;
-                }
-                _size--;
-            }
-        }
+        void pop_back();
 
-        void erase(size_type n) {
-            if (n >= size() || n < 0) return;
-            if (n == 0) {
-                head = head->next;
-                if (n == size() - 1)
-                    tail == nullptr;
-                _size--;
-                return;
-            }
-            auto now = begin();
-            while (--n) {
-                now++;
-            }
-            if (now.now->next == tail)
-                tail == now.now;
-            now.now->next = now.now->next->next;
-            _size--;
-        }
+        void erase(size_type n);
 
-        bool contains(const value_type &target) { // Find out if a Node<T> exists.
-            auto iter = begin(), e = end();
-            while (iter < e) {
-                if (*iter == target) return true;
-                ++iter;
-            }
-            return false;
-        }
+        bool contains(const value_type &target);
 
         friend iterator;
     };
+
+    template<class T, class Alloc>
+    typename SingleList<T, Alloc>::iterator SingleList<T, Alloc>::begin() {
+        return {nullptr, head};
+    }
+
+    template<class T, class Alloc>
+    typename SingleList<T, Alloc>::iterator SingleList<T, Alloc>::end() {
+        return {tail, nullptr, static_cast<difference_type>(size())};
+    }
+
+    template<class T, class Alloc>
+    const typename SingleList<T, Alloc>::iterator SingleList<T, Alloc>::begin() const {
+        return {nullptr, head};
+    }
+
+    template<class T, class Alloc>
+    const typename SingleList<T, Alloc>::iterator SingleList<T, Alloc>::end() const {
+        return {tail, nullptr, static_cast<difference_type>(size())};
+    }
+
+    template<class T, class Alloc>
+    const typename SingleList<T, Alloc>::iterator SingleList<T, Alloc>::cbegin() const {
+        return begin();
+    }
+
+    template<class T, class Alloc>
+    const typename SingleList<T, Alloc>::iterator SingleList<T, Alloc>::cend() const {
+        return end();
+    }
+
+    template<class T, class Alloc>
+    typename SingleList<T, Alloc>::size_type SingleList<T, Alloc>::size() {
+        return _size;
+    }
+
+    template<class T, class Alloc>
+    void SingleList<T, Alloc>::push_back(const value_type &newValue) {
+        auto *newNode = memory_pool.allocate(1);
+        memory_pool.construct(newNode, newValue);
+        if (head == nullptr) {
+            head = newNode;
+            tail = newNode;
+        } else {
+            newNode->next = nullptr;
+            tail->next = newNode;
+            tail = newNode;
+        }
+        _size += 1;
+    }
+
+    template<class T, class Alloc>
+    template<typename... Args>
+    void SingleList<T, Alloc>::emplace_back(Args &&... args) {
+        auto *newNode = memory_pool.allocate(1);
+        memory_pool.construct(newNode, std::forward<Args>(args)...);
+        if (head == nullptr) {
+            head = newNode;
+            tail = newNode;
+        } else {
+            newNode->next = nullptr;
+            tail->next = newNode;
+            tail = newNode;
+        }
+        _size += 1;
+    }
+
+    template<class T, class Alloc>
+    void SingleList<T, Alloc>::pop_back() { // Delete a Node<T>.
+        if (head == nullptr)
+            return;
+        else {
+            memory_pool.destroy(tail);
+            memory_pool.deallocate(tail, 1);
+            if (head != tail) {
+                Node<value_type> *find = head;
+                while (find->next != tail)
+                    find = find->next;
+                find->next = nullptr;
+                tail = find;
+            } else {
+                head == nullptr;
+                tail == nullptr;
+            }
+            _size--;
+        }
+    }
+
+    template<class T, class Alloc>
+    void SingleList<T, Alloc>::erase(SingleList::size_type n) {
+        if (n >= size() || n < 0) return;
+        if (n == 0) {
+            head = head->next;
+            if (n == size() - 1)
+                tail == nullptr;
+            _size--;
+            return;
+        }
+        auto now = begin();
+        while (--n) {
+            now++;
+        }
+        if (now.now->next == tail)
+            tail == now.now;
+        now.now->next = now.now->next->next;
+        _size--;
+    }
+
+    template<class T, class Alloc>
+    bool SingleList<T, Alloc>::contains(const value_type &target) { // Find out if a Node<T> exists.
+        auto iter = begin(), e = end();
+        while (iter < e) {
+            if (*iter == target) return true;
+            ++iter;
+        }
+        return false;
+    }
 
 }
 #endif //DATA_STRUCTURE_FOR_LOVE_SINGLE_LINKED_LIST_HPP
