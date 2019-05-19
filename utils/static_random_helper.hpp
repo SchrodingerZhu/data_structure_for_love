@@ -12,6 +12,14 @@ namespace data_structure::utils {
         std::random_device seeding{};
         std::mt19937_64 eng{seeding()};
         std::uniform_int_distribution<Int> dist{min, max};
+        Int operator()() noexcept { return dist(eng); }
+    };
+
+    template<class Int, Int min = 0, Int max = std::numeric_limits<Int>::max()>
+    struct GeoIntGen {
+        std::random_device seeding{};
+        std::mt19937_64 eng{seeding()};
+        std::geometric_distribution<Int> dist;
 
         Int operator()() noexcept { return dist(eng); }
     };

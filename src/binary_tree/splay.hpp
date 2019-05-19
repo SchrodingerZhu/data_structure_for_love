@@ -9,7 +9,7 @@
 
 namespace data_structure {
     template<class T, class Node = BSTNode<T>,
-            class Compare = DefaultCompare<T>, class Factory = utils::PoolFactory<Node>>
+            class Compare = utils::DefaultCompare<T>, class Factory = utils::PoolFactory<Node>>
     class Splay : public BSTree<T, Node, Compare, Factory> {
     protected:
         using BinTree<Node, Factory>::root;
@@ -47,7 +47,7 @@ namespace data_structure {
     public:
         virtual bool insert(const T &x) {
             auto p = BSTree<T, Node, Compare, Factory>::find_last(x);
-            if (!p || compare(x, p->x) != Eq) {
+            if (!p || compare(x, p->x) != utils::Eq) {
                 auto node = this->factory.construct(x);
                 this->adopt(p, node);
                 splay(node, &root);
@@ -58,7 +58,7 @@ namespace data_structure {
 
         virtual bool erase(const T &x) {
             auto p = this->find_last(x);
-            if (!p || compare(x, p->x) != Eq) { return false; }
+            if (!p || compare(x, p->x) != utils::Eq) { return false; }
             if (!p->children[LEFT] || !p->children[RIGHT]) {
                 this->splice(p);
                 factory.destroy(p);

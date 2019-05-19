@@ -10,7 +10,7 @@
 
 namespace data_structure {
     template<class T, class Node = WeightedBSTNode<T>,
-            class Compare = DefaultCompare<T>, class Factory = utils::PoolFactory<Node>>
+            class Compare = utils::DefaultCompare<T>, class Factory = utils::PoolFactory<Node>>
     class ScapeGoat : public BSTree<T, Node, Compare, Factory> {
     protected:
         using BinTree<Node, Factory>::root;
@@ -118,7 +118,7 @@ namespace data_structure {
         Node **result = nullptr, *father = nullptr;
         do {
             auto res = compare(x, w->x);
-            if (res == Less) {
+            if (res == utils::Less) {
                 if (w->children[LEFT] == nullptr) {
                     father = w;
                     result = reinterpret_cast<Node **>(&w->children[LEFT]);
@@ -126,7 +126,7 @@ namespace data_structure {
                 } else {
                     w = static_cast<Node *>(w->children[LEFT]);
                 }
-            } else if (res == Greater) {
+            } else if (res == utils::Greater) {
                 if (w->children[RIGHT] == nullptr) {
                     father = w;
                     result = reinterpret_cast<Node **>(&w->children[RIGHT]);

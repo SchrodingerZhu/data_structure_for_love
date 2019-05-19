@@ -6,6 +6,7 @@
 #define DATA_STRUCTURE_FOR_LOVE_BINARY_TREE_BASE_HPP
 
 #include <node_factory.hpp>
+#include <compare.hpp>
 #include <utility>
 #include <stack>
 #include <iostream>
@@ -130,21 +131,9 @@ namespace data_structure {
     };
 
 
-    enum Relation {
-        Eq, Less, Greater
-    };
-
-    template<class T>
-    struct DefaultCompare {
-        constexpr Relation operator()(const T &a, const T &b) const noexcept {
-            if (a == b) return Eq;
-            else if (a < b) return Less;
-            else return Greater;
-        }
-    };
 
     template<class T, class Node = BSTNode<T>,
-            class Compare = DefaultCompare<T>, class Factory = utils::TrivialFactory<Node>>
+            class Compare = utils::DefaultCompare<T>, class Factory = utils::TrivialFactory<Node>>
     class BSTree : public BinTree<Node, Factory> {
     protected:
         constexpr static Compare compare{};
@@ -294,13 +283,13 @@ namespace data_structure {
         while (w != nullptr) {
             prev = w;
             switch (compare(x, w->x)) {
-                case Less:
+                case utils::Less:
                     w = static_cast<Node *>(w->children[LEFT]);
                     break;
-                case Greater:
+                case utils::Greater:
                     w = static_cast<Node *>(w->children[RIGHT]);
                     break;
-                case Eq:
+                case utils::Eq:
                     return w;
 
             }
@@ -314,13 +303,13 @@ namespace data_structure {
             this->root = u;
         } else {
             switch (compare(u->x, p->x)) {
-                case Less:
+                case utils::Less:
                     p->children[LEFT] = u;
                     break;
-                case Greater:
+                case utils::Greater:
                     p->children[RIGHT] = u;
                     break;
-                case Eq:
+                case utils::Eq:
                     return false;
 
             }
@@ -410,7 +399,7 @@ namespace data_structure {
     template<class T, class Node, class Compare, class Factory>
     bool BSTree<T, Node, Compare, Factory>::insert(const T &x) {
         auto p = find_last(x);
-        if (!p || compare(x, p->x) != Eq) {
+        if (!p || compare(x, p->x) != utils::Eq) {
             adopt(p, this->factory.construct(x));
             return true;
         }
@@ -420,7 +409,7 @@ namespace data_structure {
     template<class T, class Node, class Compare, class Factory>
     bool BSTree<T, Node, Compare, Factory>::erase(const T &x) {
         Node *u = find_last(x);
-        if (u && compare(x, u->x) == Eq) {
+        if (u && compare(x, u->x) == utils::Eq) {
             erase(u);
             return true;
         }
@@ -477,9 +466,9 @@ namespace data_structure {
         Node *w = static_cast<Node *>(this->root);
         while (w != nullptr) {
             auto comp = compare(x, w->x);
-            if (comp == Less) {
+            if (comp == utils::Less) {
                 w = static_cast<Node *>(w->children[LEFT]);
-            } else if (comp == Greater) {
+            } else if (comp == utils::Greater) {
                 w = static_cast<Node *>(w->children[RIGHT]);
             } else {
                 return walker(w);
@@ -513,10 +502,10 @@ namespace data_structure {
     typename BSTree<T, Node, Compare, Factory>::walker BSTree<T, Node, Compare, Factory>::succ(const T &x) {
         Node *u = static_cast<Node *>(this->root);
         while (u) {
-            if (compare(u->x, x) != Greater) u = static_cast<Node *>(u->children[RIGHT]);
+            if (compare(u->x, x) != utils::Greater) u = static_cast<Node *>(u->children[RIGHT]);
             else {
                 auto p = pred_node(u);
-                if (p && compare(p->x, x) == Greater) u = p;
+                if (p && compare(p->x, x) == utils::Greater) u = p;
                 else break;
             }
         }
@@ -527,10 +516,10 @@ namespace data_structure {
     typename BSTree<T, Node, Compare, Factory>::walker BSTree<T, Node, Compare, Factory>::pred(const T &x) {
         Node *u = static_cast<Node *>(this->root);
         while (u) {
-            if (compare(u->x, x) != Less) u = static_cast<Node *>(u->children[LEFT]);
+            if (compare(u->x, x) != utils::Less) u = static_cast<Node *>(u->children[LEFT]);
             else {
                 auto p = succ_node(u);
-                if (p && compare(p->x, x) == Less) u = p;
+                if (p && compare(p->x, x) == utils::Less) u = p;
                 else break;
             }
         }
@@ -540,7 +529,7 @@ namespace data_structure {
     template<class T, class Node, class Compare, class Factory>
     bool BSTree<T, Node, Compare, Factory>::contains(const T &x) {
         auto t = find_last(x);
-        return compare(t->x, x) == Eq;
+        return compare(t->x, x) == utils::Eq;
     }
 
     template<class T, class Node, class Compare, class Factory>

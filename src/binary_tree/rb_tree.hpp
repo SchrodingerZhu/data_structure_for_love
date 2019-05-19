@@ -25,7 +25,7 @@ namespace data_structure {
 
 
     template<class T, class Node = RBTNode<T>,
-            class Compare = DefaultCompare<T>, class Factory = utils::PoolFactory<Node>>
+            class Compare = utils::DefaultCompare<T>, class Factory = utils::PoolFactory<Node>>
     class RbTree : public BSTree<T, Node, Compare, Factory> {
     protected:
         using BinTree<Node, Factory>::factory;
@@ -143,14 +143,14 @@ namespace data_structure {
         while (t) {
             parent = t;
             auto res = compare(key, t->x);
-            if (res == Less) t = static_cast<Node *>(t->children[LEFT]);
-            else if (res == Greater) t = static_cast<Node *>(t->children[RIGHT]);
+            if (res == utils::Less) t = static_cast<Node *>(t->children[LEFT]);
+            else if (res == utils::Greater) t = static_cast<Node *>(t->children[RIGHT]);
             else return nullptr;
         }
         Node *x = factory.construct(key);
         if (!parent) {
             root = x;
-        } else if (compare(key, parent->x) == Less) {
+        } else if (compare(key, parent->x) == utils::Less) {
             parent->set_left(x);
         } else {
             parent->set_right(x);
@@ -299,7 +299,7 @@ namespace data_structure {
     template<class T, class Node, class Compare, class Factory>
     bool RbTree<T, Node, Compare, Factory>::erase(const T &x) {
         auto node = this->find_last(x);
-        if (node && compare(node->x, x) == Eq) {
+        if (node && compare(node->x, x) == utils::Eq) {
             n--;
             this->root = del(this->root, node);
             return true;

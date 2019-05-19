@@ -17,7 +17,7 @@ namespace data_structure {
     };
 
     template<class T, class Node = TreapNode<T>,
-            class Compare = DefaultCompare<T>, class Factory = utils::PoolFactory<Node>>
+            class Compare = utils::DefaultCompare<T>, class Factory = utils::PoolFactory<Node>>
     class Treap : public BSTree<T, Node, Compare, Factory> {
     protected:
         using BinTree<Node, Factory>::root;
@@ -73,7 +73,7 @@ namespace data_structure {
     template<class T, class Node, class Compare, class Factory>
     bool Treap<T, Node, Compare, Factory>::insert(const T &x) {
         auto p = this->find_last(x);
-        if (!p || compare(x, p->x) != Eq) {
+        if (!p || compare(x, p->x) != utils::Eq) {
             auto node = this->factory.construct(rand(), x);
             this->adopt(p, node);
             bubble_up(node);
@@ -85,7 +85,7 @@ namespace data_structure {
     template<class T, class Node, class Compare, class Factory>
     bool Treap<T, Node, Compare, Factory>::erase(const T &x) {
         auto p = this->find_last(x);
-        if (p && compare(x, p->x) == Eq) {
+        if (p && compare(x, p->x) == utils::Eq) {
             trickle_down(p);
             this->splice(p);
             factory.destroy(p);
