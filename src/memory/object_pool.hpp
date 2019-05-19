@@ -20,7 +20,7 @@ namespace data_structure {
             typename PtrContainer = std::vector<T *>>
     class ObjectPool {
 
-    public:
+
     public:
         typedef size_t size_type;
         typedef ptrdiff_t difference_type;

@@ -33,6 +33,7 @@ namespace data_structure {
         using iterator = T *;
         using const_iterator = T const *;
 
+        // default constructor
         optimized_vector() noexcept;
 
         explicit optimized_vector(size_type count, value_type const &value = value_type());
@@ -82,9 +83,9 @@ namespace data_structure {
 
         void empty_fill_local();
 
-        bool empty() { return size() == 0; }
+        bool empty();
 
-        T &back() { return *(end() - 1); }
+        T &back();
 
     private:
 #ifdef MEMORY_LEAK_TEST
@@ -396,6 +397,12 @@ namespace data_structure {
             mem_union.heap_storage.mem_usage = mem_union.heap_storage.mem_start + target;
         }
     }
+
+    template<typename T, size_t LocalSize>
+    bool optimized_vector<T, LocalSize>::empty() { return size() == 0; }
+
+    template<typename T, size_t LocalSize>
+    T &optimized_vector<T, LocalSize>::back() { return *(end() - 1); }
 
 }
 

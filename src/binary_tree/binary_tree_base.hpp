@@ -163,7 +163,7 @@ namespace data_structure {
     };
 
     template<class T, class Node = BSTNode<T>,
-            class Compare = DefaultCompare<T>, class Factory = utils::TrivialFactory<Node>>
+            class Compare = DefaultCompare<T>, class Factory = utils::PoolFactory<Node>>
     class BSTree : public BinTree<Node, Factory> {
     protected:
         constexpr static Compare compare{};
@@ -213,6 +213,8 @@ namespace data_structure {
         virtual walker top();
 
         virtual walker pred(const T &x);
+
+        virtual walker locate(const T &x);
 
         virtual walker succ(const T &x);
 
@@ -559,7 +561,7 @@ namespace data_structure {
     template<class T, class Node, class Compare, class Factory>
     bool BSTree<T, Node, Compare, Factory>::contains(const T &x) {
         auto t = find_last(x);
-        return compare(t->x, x) == Eq;
+        return t && compare(t->x, x) == Eq;
     }
 
     template<class T, class Node, class Compare, class Factory>
@@ -571,7 +573,5 @@ namespace data_structure {
     typename BSTree<T, Node, Compare, Factory>::iterator BSTree<T, Node, Compare, Factory>::end() {
         return BSTree::iterator(nullptr, this);
     }
-
-
 }
 #endif //DATA_STRUCTURE_FOR_LOVE_BINARY_TREE_BASE_HPP
