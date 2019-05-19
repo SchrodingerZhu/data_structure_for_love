@@ -2,9 +2,9 @@
 
 ## Project Information
 
-### Title General 
+### Title 
 
-Data Structures Library for Modern C++
+General Data Structures Library for Modern C++
 
 ### Contributors
 

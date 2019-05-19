@@ -19,8 +19,6 @@ namespace data_structure {
     template<typename T, std::size_t ChunkSize = 1000,
             typename PtrContainer = std::vector<T *>>
     class ObjectPool {
-
-
     public:
         typedef size_t size_type;
         typedef ptrdiff_t difference_type;
@@ -206,7 +204,6 @@ namespace data_structure {
 
     template<class T, class U>
     bool operator!=(const ObjectPool<T> &, const ObjectPool<U> &) { return false; }
-
 }
 
 #endif //DATA_STRUCTURE_FOR_LOVE_OBJECT_POOL_HPP

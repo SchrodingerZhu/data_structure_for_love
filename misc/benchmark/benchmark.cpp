@@ -8,7 +8,7 @@
 //#include "bin_trees_3.h"
 //#include "bin_trees_4.h"
 //#include "heap_insertion.h"
-//#include "heap_pop.h"
+#include "heap_pop.h"
 //#include "heap_melding.h"
 //#include "heap_decreasing.h"
 //#include "arrays.h"
@@ -17,7 +17,7 @@
 //#include "intset_deletion.h"
 //#include "intset_checking.h"
 //#include "intset_extrema.hpp"
-#include "intset_iteration.h"
+//#include "intset_iteration.h"
 int main() {
     benchmark::run_all();
 }

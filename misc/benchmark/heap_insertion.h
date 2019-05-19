@@ -10,6 +10,7 @@
 #include <binomial_heap.hpp>
 #include <fib_heap.hpp>
 #include <pairing_heap.hpp>
+#include <queue>
 
 
 namespace benchmark {
@@ -59,5 +60,6 @@ namespace benchmark {
     HeapInsertionRunner<FibHeap<int>> fib_heap_insertion("FibHeapInsertion");
     HeapInsertionRunner<BinomialHeap<int>> binomial_heap_insertion("BinomialHeapInsertion");
     HeapInsertionRunner<PairingHeap<int>> pairing_heap_insertion("PairingHeapInsertion");
+    HeapInsertionRunner<std::priority_queue<int>> priority_queue_insertion("PQInsertion");
 }
 #endif //DATA_STRUCTURE_FOR_LOVE_HEAP_INSERTION_H

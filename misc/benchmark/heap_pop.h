@@ -10,6 +10,7 @@
 #include <binomial_heap.hpp>
 #include <fib_heap.hpp>
 #include <pairing_heap.hpp>
+#include <queue>
 
 
 namespace benchmark {
@@ -62,5 +63,6 @@ namespace benchmark {
     HeapPopRunner<FibHeap<int>> fib_heap_pop("FibHeapPop");
     HeapPopRunner<BinomialHeap<int>> binomial_heap_pop("BinomialHeapPop");
     HeapPopRunner<PairingHeap<int>> pairing_heap_pop("PairingHeapPop");
+    HeapPopRunner<std::priority_queue<int>> pq_pop("PQPop");
 }
 #endif //DATA_STRUCTURE_FOR_LOVE_HEAP_POP_H

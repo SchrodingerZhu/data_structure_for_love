@@ -214,8 +214,6 @@ namespace data_structure {
 
         virtual walker pred(const T &x);
 
-        virtual walker locate(const T &x);
-
         virtual walker succ(const T &x);
 
         virtual bool contains(const T &x);
